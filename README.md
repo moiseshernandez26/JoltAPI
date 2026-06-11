@@ -124,7 +124,7 @@ sequenceDiagram
     participant API as External API
 
     W->>M: sendRequest { request, variables }
-    M->>M: interpolate variables ({{var}})
+    M->>M: interpolate variables (double-brace syntax)
     M->>M: extract unresolved (abort if any)
     M->>H: executeRequest(resolved)
     H->>API: fetch(url, options)
@@ -210,8 +210,8 @@ Use `{{variableName}}` syntax in URLs, headers, body, and auth fields. Variables
 ```mermaid
 flowchart LR
     A[User clicks Send] --> B[Load variables from .joltapi/variables.json]
-    B --> C[Interpolate {{var}} in URL, headers, body]
-    C --> D{Any {{unresolved}}?}
+    B --> C["Interpolate double-brace variables in URL, headers, body"]
+    C --> D{Any unresolved variable?}
     D -->|Yes| E[Show error: Unresolved variable]
     D -->|No| F[Execute HTTP request]
 ```
@@ -283,7 +283,7 @@ joltapi/
 
 ## License
 
-MIT © JoltAPI
+MIT © JoltAPI — see [LICENSE](LICENSE)
 
 ---
 

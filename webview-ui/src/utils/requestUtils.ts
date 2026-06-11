@@ -1,15 +1,19 @@
 import type { IHttpRequest } from '../types';
 
 export function generateRequestName(request: IHttpRequest): string {
-  const method = request.method;
-  let hostname = '';
-
   try {
     const url = new URL(request.url);
-    hostname = url.hostname.replace(/\./g, '_');
+    const hostParts = url.hostname.split('.');
+    const hostPart = hostParts[0];
+    if (!hostPart.includes('{{')) {
+      return hostPart;
+    }
+    const pathParts = url.pathname.split('/').filter(Boolean);
+    if (pathParts.length > 0 && !pathParts[0].includes('{{')) {
+      return pathParts[0];
+    }
+    return 'request';
   } catch {
-    hostname = request.url.split('/')[2]?.replace(/\./g, '_') || 'unknown';
+    return 'request';
   }
-
-  return `${hostname}_${method}`;
 }

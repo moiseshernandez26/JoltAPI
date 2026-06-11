@@ -99,7 +99,7 @@ export class JoltApiPanel {
   private _getHtmlContent(extensionUri: vscode.Uri): string {
     const webview = this._panel.webview;
     const scriptUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(extensionUri, 'webview-ui', 'dist', 'assets', 'index.js'),
+      vscode.Uri.joinPath(extensionUri, 'webview-ui', 'dist', 'assets', 'main.js'),
     );
     const styleUri = webview.asWebviewUri(
       vscode.Uri.joinPath(extensionUri, 'webview-ui', 'dist', 'assets', 'style.css'),
@@ -117,7 +117,7 @@ export class JoltApiPanel {
 </head>
 <body>
   <div id="root"></div>
-  <script nonce="${nonce}" src="${scriptUri}"></script>
+  <script type="module" nonce="${nonce}" src="${scriptUri}"></script>
 </body>
 </html>`;
   }

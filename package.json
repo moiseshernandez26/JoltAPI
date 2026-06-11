@@ -32,76 +32,10 @@
         "icon": "$(add)"
       },
       {
-        "command": "joltapi.refreshCollections",
-        "title": "Refresh",
-        "category": "JoltAPI",
-        "icon": "$(refresh)"
-      },
-      {
-        "command": "joltapi.addCollection",
-        "title": "New Collection",
-        "category": "JoltAPI",
-        "icon": "$(add)"
-      },
-      {
-        "command": "joltapi.collectionDelete",
-        "title": "Delete Collection",
-        "category": "JoltAPI",
-        "icon": "$(trash)"
-      },
-      {
-        "command": "joltapi.requestDelete",
-        "title": "Delete",
-        "category": "JoltAPI",
-        "icon": "$(trash)"
-      },
-      {
-        "command": "joltapi.requestMove",
-        "title": "Move to...",
-        "category": "JoltAPI",
-        "icon": "$(arrow-right)"
-      },
-      {
         "command": "joltapi.openRequest",
         "title": "Open Request",
         "category": "JoltAPI",
         "icon": "$(go-to-file)"
-      },
-      {
-        "command": "joltapi.refreshHistory",
-        "title": "Refresh",
-        "category": "JoltAPI",
-        "icon": "$(refresh)"
-      },
-      {
-        "command": "joltapi.clearHistory",
-        "title": "Clear History",
-        "category": "JoltAPI",
-        "icon": "$(clear-all)"
-      },
-      {
-        "command": "joltapi.refreshVariables",
-        "title": "Refresh",
-        "category": "JoltAPI",
-        "icon": "$(refresh)"
-      },
-      {
-        "command": "joltapi.addVariable",
-        "title": "Add Variable",
-        "category": "JoltAPI",
-        "icon": "$(add)"
-      },
-      {
-        "command": "joltapi.editVariable",
-        "title": "Edit",
-        "category": "JoltAPI",
-        "icon": "$(edit)"
-      },
-      {
-        "command": "joltapi.deleteVariable",
-        "title": "Delete",
-        "category": "JoltAPI",
-        "icon": "$(trash)"
       }
     ],
     "keybindings": [
@@ -125,66 +59,8 @@
           "group": "navigation",
           "when": "editorFocus"
         }
-      ],
-      "view/title": [
-        {
-          "command": "joltapi.addCollection",
-          "when": "view == joltapi.collections",
-          "group": "navigation@2"
-        },
-        {
-          "command": "joltapi.refreshCollections",
-          "when": "view == joltapi.collections",
-          "group": "navigation@2"
-        },
-        {
-          "command": "joltapi.clearHistory",
-          "when": "view == joltapi.history",
-          "group": "navigation@1"
-        },
-        {
-          "command": "joltapi.refreshHistory",
-          "when": "view == joltapi.history",
-          "group": "navigation@2"
-        },
-        {
-          "command": "joltapi.addVariable",
-          "when": "view == joltapi.variables",
-          "group": "navigation@1"
-        },
-        {
-          "command": "joltapi.refreshVariables",
-          "when": "view == joltapi.variables",
-          "group": "navigation@2"
-        }
-      ],
-      "view/item/context": [
-        {
-          "command": "joltapi.requestDelete",
-          "when": "view == joltapi.collections && viewItem == request",
-          "group": "inline"
-        },
-        {
-          "command": "joltapi.requestMove",
-          "when": "view == joltapi.collections && viewItem == request",
-          "group": "1_move@1"
-        },
-        {
-          "command": "joltapi.collectionDelete",
-          "when": "view == joltapi.collections && viewItem == collection",
-          "group": "inline"
-        },
-        {
-          "command": "joltapi.editVariable",
-          "when": "view == joltapi.variables && viewItem =~ /^variable/",
-          "group": "inline"
-        },
-        {
-          "command": "joltapi.deleteVariable",
-          "when": "view == joltapi.variables && viewItem =~ /^variable/",
-          "group": "1_delete@1"
-        }
       ]
+
     },
     "configuration": {
       "title": "JoltAPI",
@@ -255,45 +131,12 @@
     "views": {
       "joltapi-sidebar": [
         {
-          "id": "joltapi.overview",
-          "name": "Overview",
-          "icon": "$(info)"
-        },
-        {
-          "id": "joltapi.collections",
-          "name": "Collections",
-          "icon": "$(folder)"
-        },
-        {
-          "id": "joltapi.history",
-          "name": "History",
-          "icon": "$(history)"
-        },
-        {
-          "id": "joltapi.variables",
-          "name": "Variables",
-          "icon": "$(symbol-variable)"
+          "type": "webview",
+          "id": "joltapi.sidebar",
+          "name": "JoltAPI"
         }
       ]
-    },
-    "viewsWelcome": [
-      {
-        "view": "joltapi.overview",
-        "contents": "Welcome to JoltAPI! A UI-driven REST API client for VS Code.\n[Open JoltAPI](command:joltapi.open)"
-      },
-      {
-        "view": "joltapi.collections",
-        "contents": "Build, send, and inspect HTTP requests without leaving the editor.\n[Open JoltAPI](command:joltapi.open)"
-      },
-      {
-        "view": "joltapi.history",
-        "contents": "Your request history will appear here.\n[Open JoltAPI](command:joltapi.open)"
-      },
-      {
-        "view": "joltapi.variables",
-        "contents": "[Add Variable](command:joltapi.addVariable) to use `{{variable}}` interpolation in requests.\n\n> **Warning:** Variables are stored in plain text on disk. Do not store production credentials here."
-      }
-    ]
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run build",

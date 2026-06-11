@@ -11,9 +11,12 @@ interface TabState {
   tabs: IRequestTab[];
   activeTabIndex: number;
   addTab: () => void;
+  addPrepopulatedTab: (name: string, method: import('../types').HttpMethod, url: string) => void;
   removeTab: (index: number) => void;
   setActiveTab: (index: number) => void;
   updateTab: (index: number, tab: Partial<IRequestTab>) => void;
+  closeAllTabs: () => void;
+  closeOtherTabs: (keepIndex: number) => void;
 }
 
 function generateId(): string {
@@ -37,6 +40,16 @@ export const useTabStore = create<TabState>((set) => ({
     set((state) => {
       if (state.tabs.length >= 10) {return state;}
       const newTab = createDefaultTab();
+      return {
+        tabs: [...state.tabs, newTab],
+        activeTabIndex: state.tabs.length,
+      };
+    }),
+
+  addPrepopulatedTab: (name: string, method: import('../types').HttpMethod, url: string) =>
+    set((state) => {
+      if (state.tabs.length >= 10) {return state;}
+      const newTab: IRequestTab = { id: generateId(), name, method, url };
       return {
         tabs: [...state.tabs, newTab],
         activeTabIndex: state.tabs.length,
@@ -67,4 +80,16 @@ export const useTabStore = create<TabState>((set) => ({
       newTabs[index] = { ...newTabs[index], ...tab };
       return { tabs: newTabs };
     }),
+
+  closeAllTabs: () =>
+    set(() => ({
+      tabs: [createDefaultTab()],
+      activeTabIndex: 0,
+    })),
+
+  closeOtherTabs: (keepIndex: number) =>
+    set((state) => ({
+      tabs: [state.tabs[keepIndex]],
+      activeTabIndex: 0,
+    })),
 }));

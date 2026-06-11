@@ -30,10 +30,16 @@ interface HandlerContext {
 
 let handlerCtx: HandlerContext | null = null;
 
-function refreshAll(): void {
-  vscode.commands.executeCommand('joltapi.refreshCollections');
-  vscode.commands.executeCommand('joltapi.refreshHistory');
-  vscode.commands.executeCommand('joltapi.refreshVariables');
+let broadcastRefresh: (() => void) | null = null;
+
+export function setBroadcastRefresh(fn: () => void): void {
+  broadcastRefresh = fn;
+}
+
+function notifyChanged(): void {
+  if (broadcastRefresh) {
+    broadcastRefresh();
+  }
 }
 
 export function initMessageHandlers(context: vscode.ExtensionContext): void {
@@ -62,8 +68,9 @@ export async function handleMessage(
         postMessage,
         (entry) => {
           handlerCtx!.history = addToHistory(context, entry);
-          vscode.commands.executeCommand('joltapi.refreshHistory');
+          notifyChanged();
         },
+        notifyChanged,
       );
       break;
     case 'loadCollections':
@@ -71,34 +78,34 @@ export async function handleMessage(
       break;
     case 'saveCollection':
       await handleSaveCollection(message.payload, postMessage);
-      vscode.commands.executeCommand('joltapi.refreshCollections');
+      notifyChanged();
       break;
     case 'saveRequest':
       await handleSaveRequest(message.payload, postMessage);
-      vscode.commands.executeCommand('joltapi.refreshCollections');
+      notifyChanged();
       break;
     case 'deleteRequest':
       await handleDeleteRequest(message.payload, postMessage);
-      vscode.commands.executeCommand('joltapi.refreshCollections');
+      notifyChanged();
       break;
     case 'deleteCollection':
       await handleDeleteCollection(message.payload, postMessage);
-      vscode.commands.executeCommand('joltapi.refreshCollections');
+      notifyChanged();
       break;
     case 'renameRequest':
       await handleRenameRequest(message.payload, postMessage);
-      vscode.commands.executeCommand('joltapi.refreshCollections');
+      notifyChanged();
       break;
     case 'moveRequest':
       await handleMoveRequest(message.payload, postMessage);
-      vscode.commands.executeCommand('joltapi.refreshCollections');
+      notifyChanged();
       break;
     case 'loadVariables':
       await handleLoadVariables(postMessage);
       break;
     case 'saveVariables':
       await handleSaveVariables(message.payload, postMessage);
-      vscode.commands.executeCommand('joltapi.refreshVariables');
+      notifyChanged();
       break;
     case 'getHistory':
       handleGetHistory(handlerCtx.history, postMessage);
@@ -106,14 +113,14 @@ export async function handleMessage(
     case 'clearHistory':
       handleClearHistory(context, postMessage);
       handlerCtx.history = [];
-      vscode.commands.executeCommand('joltapi.refreshHistory');
+      notifyChanged();
       break;
     case 'exportCollection':
       await handleExportCollection(message.payload, postMessage);
       break;
     case 'importCollection':
       await handleImportCollection(message.payload, postMessage);
-      vscode.commands.executeCommand('joltapi.refreshCollections');
+      notifyChanged();
       break;
     case 'getSettings':
       handleGetSettings(postMessage);
@@ -129,6 +136,8 @@ export async function handleMessage(
       break;
     case 'copyCurl':
       await handleCopyCurl(message.payload, postMessage);
+      break;
+    case 'openInPanel':
       break;
     default:
       console.warn(`[JoltAPI] Unknown message command: ${(message as { command: string }).command}`);

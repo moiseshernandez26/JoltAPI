@@ -90,23 +90,33 @@ When you change a model or message type in the host, you **must** update the sam
 ## Architecture
 
 ```
-Webview (React + Zustand)
+Sidebar Webview (React + Zustand)
   │  postMessage({ command, payload })
   ▼
-panels/webviewPanel.ts   →  delegates to
+providers/sidebarProvider.ts  →  handles openInPanel directly,
+  │                               routes others to messageHandlers
   │
   ▼
 panels/messageHandlers.ts →  routes by command string
   │
   ├── handlers/sendRequestHandler.ts  → interpolate + httpService.executeRequest()
-  ├── handlers/collectionHandler.ts   → load/save/delete/rename collections
+  ├── handlers/collectionHandler.ts   → load/save/delete/rename/move collections
   ├── handlers/variableHandler.ts    → load/save variables
   ├── handlers/historyHandler.ts    → history via globalState
   ├── handlers/importExportHandler.ts → import/export
   ├── handlers/settingsHandler.ts    → settings + dialogs
   ├── handlers/curlHandler.ts        → copy as cURL
   └── handlers/interpolation.ts      → shared interpolateTemplate
+
+Main Panel Webview (React + Zustand)
+  ▲  postMessage({ command, payload })
+  │
+panels/webviewPanel.ts   →  delegates to messageHandlers
 ```
+
+**Cross-webview state sync**: After any mutation (save/delete collection, save/delete variables, save request, etc.), `notifyChanged()` calls `broadcastRefresh()` in `extension.ts`, which pushes fresh `collectionsLoaded`, `variablesLoaded` to BOTH webviews via `SidebarProvider.sendToSidebar()` and `JoltApiPanel.sendToWebview()`.
+
+**Message loss prevention**: `webview-ui/src/api/bridge.ts` registers `window.addEventListener('message')` at module level (before React mounts) with a `_pending` buffer array. Messages arriving before `onMessage()` is called by React's `useEffect` are queued and flushed immediately when the handler registers. This guarantees zero message loss for cold-started panels. Each webview gets its own copy of `bridge.ts` via the shared `global.js` chunk.
 
 **Key rule**: All HTTP logic lives in `services/httpService.ts`. All persistence lives in `services/storageService.ts`. Never inline fetch calls or file I/O in command handlers or UI.
 
@@ -123,12 +133,14 @@ panels/messageHandlers.ts →  routes by command string
 ## State Management
 
 Webview uses **Zustand** with dedicated stores per domain:
-- `requestStore` — current request form state
+- `requestStore` — current request form state (isDirty, loadRequest, resetRequest)
 - `responseStore` — last response
-- `collectionStore` — loaded collections and selected items
-- `variableStore` — flat variable list
-- `historyStore` — request history entries
-- `uiStore` — sidebar visibility, active sidebar tab
+- `collectionStore` — loaded collections (for SaveRequestDialog dropdown)
+- `variableStore` — flat variable list (for interpolation)
+- `tabStore` — multi-tab state: `tabs: IRequestTab[]`, `activeTabIndex`, `addTab`, `addPrepopulatedTab(name, method, url)`, `removeTab`, `setActiveTab`, `updateTab`, `closeAllTabs`, `closeOtherTabs`
+
+Sidebar uses its own store:
+- `sidebarStore` — collections, history, variables, activeTab sidebar tab, expandedCollections, isLoading
 
 Sidebar tabs are `'collections' | 'history' | 'variables'`.
 
@@ -181,6 +193,13 @@ Happens at **send time** in `handlers/sendRequestHandler.ts`. The `interpolateTe
 2. Add a handler function in the appropriate `src/panels/handlers/<domain>.ts` and wire it in `messageHandlers.ts`
 3. Send from the webview via `useSendMessage()` hook
 4. Listen for responses via `useMessageListener()` hook, update stores as needed
+5. If the mutation affects data visible in the sidebar, call `notifyChanged()` so `broadcastRefresh` pushes fresh state to both webviews
+
+## Zustand Patterns
+
+- Always use `getState()` inside message listeners and event callbacks — React hook closures (`useStore(s => s.xxx)`) are stale by one render. Use hook values only for rendering (JSX).
+- `addPrepopulatedTab(name, method, url)` in `tabStore` creates a tab with data pre-populated atomically. Prefer this over `addTab()` + `updateTab()` when opening requests.
+- After closing the active tab, always `loadRequest()` the new active tab's data to prevent stale data propagation.
 
 ## When a File Is Getting Too Long
 

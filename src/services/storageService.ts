@@ -82,7 +82,7 @@ export async function loadCollections(): Promise<ICollection[]> {
   return collections;
 }
 
-export function createDefaultCollection(): ICollection {
+function createDefaultCollection(): ICollection {
   const now = Date.now();
   return {
     id: randomUUID(),

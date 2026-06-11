@@ -1,18 +1,22 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import { resolve } from 'path';
 
 export default defineConfig({
   plugins: [react()],
   build: {
     outDir: 'dist',
     rollupOptions: {
+      input: {
+        main: resolve(__dirname, 'index.html'),
+        sidebar: resolve(__dirname, 'sidebar.html'),
+      },
       output: {
-        entryFileNames: 'assets/index.js',
+        entryFileNames: 'assets/[name].js',
         chunkFileNames: 'assets/[name].js',
         assetFileNames: 'assets/[name].[ext]',
       },
     },
-    // No code-splitting — the webview can only load a single script
     cssCodeSplit: false,
   },
 });

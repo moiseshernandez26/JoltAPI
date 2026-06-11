@@ -1,8 +1,6 @@
 import type { IResolvedHttpRequest, IHttpResponse, IHttpResponseHeader, IProxyConfig } from '../models';
 import { buildUrl, redactUrl, classifyFetchError } from './httpErrors';
 
-// Re-export for backward compatibility
-export { HttpError } from './httpErrors';
 export { shellEscape, buildCurlCommand } from './curlUtils';
 
 /**
@@ -109,35 +107,3 @@ export async function executeRequest(request: IResolvedHttpRequest): Promise<IHt
   };
 }
 
-/**
- * Appends query parameters to a URL string.
- */
-export function appendQueryParams(url: string, params: Record<string, string>): string {
-  if (Object.keys(params).length === 0) {
-    return url;
-  }
-
-  const urlObj = new URL(url);
-  for (const [key, value] of Object.entries(params)) {
-    urlObj.searchParams.append(key, value);
-  }
-  return urlObj.toString();
-}
-
-/**
- * Serializes a request body based on its content type and headers.
- */
-export function serializeBody(
-  body: string | undefined,
-  contentType: string,
-): string | undefined {
-  if (body === undefined || body === '') {
-    return undefined;
-  }
-
-  if (contentType.includes('application/x-www-form-urlencoded')) {
-    return body;
-  }
-
-  return body;
-}

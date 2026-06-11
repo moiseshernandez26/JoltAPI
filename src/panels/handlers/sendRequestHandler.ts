@@ -6,7 +6,6 @@ import { interpolateTemplate, extractUnresolved } from './interpolation';
 import { loadCollections, saveCollection } from '../../services/storageService';
 import { generateRequestName } from '../../utils/formatters';
 import { logError } from '../../utils/logger';
-import * as vscode from 'vscode';
 
 type PostFn = (message: HostToWebviewMessage) => void;
 
@@ -14,6 +13,7 @@ export async function handleSendRequest(
   payload: { request: IHttpRequest; variables: IVariableSet },
   postMessage: PostFn,
   addToHistory: (entry: IHistoryEntry) => void,
+  onChanged?: () => void,
 ): Promise<void> {
   let resolved = resolveHttpRequest(payload.request);
 
@@ -66,7 +66,7 @@ export async function handleSendRequest(
       payload: { requestId: payload.request.id, response },
     });
 
-    autoSaveToDefaultCollection(payload.request, postMessage).catch((err) => {
+    autoSaveToDefaultCollection(payload.request, postMessage, onChanged).catch((err) => {
       console.error('[JoltAPI] autoSave failed:', err);
     });
   } catch (err: unknown) {
@@ -77,7 +77,7 @@ export async function handleSendRequest(
   }
 }
 
-async function autoSaveToDefaultCollection(request: IHttpRequest, postMessage: PostFn): Promise<void> {
+async function autoSaveToDefaultCollection(request: IHttpRequest, postMessage: PostFn, onChanged?: () => void): Promise<void> {
   const collections = await loadCollections();
   const defaultCollection = collections.find((c) => c.name === 'Default');
   if (!defaultCollection) {return;}
@@ -94,7 +94,7 @@ async function autoSaveToDefaultCollection(request: IHttpRequest, postMessage: P
 
   const now = Date.now();
   defaultCollection.requests.push({
-    id: crypto.randomUUID(),
+    id: randomUUID(),
     name,
     request: { ...request },
     createdAt: now,
@@ -105,7 +105,7 @@ async function autoSaveToDefaultCollection(request: IHttpRequest, postMessage: P
 
   const updated = await loadCollections();
   postMessage({ command: 'collectionsLoaded', payload: { collections: updated } });
-  vscode.commands.executeCommand('joltapi.refreshCollections');
+  if (onChanged) { onChanged(); }
 }
 
 function resolveHttpRequest(request: IHttpRequest): IResolvedHttpRequest {

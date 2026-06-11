@@ -7,6 +7,7 @@ import {
   useTabStore,
 } from '../store';
 import { useMessageListener, useRequestState } from '../hooks';
+import { postMessage } from '../api';
 import { SaveRequestDialog } from '../components';
 import { RequestBuilder, formatRequestHeaders } from './RequestBuilder';
 import { ResponseView } from './ResponseView';
@@ -26,6 +27,12 @@ export const MainView: React.FC = () => {
   const [lastError, setLastError] = useState<string | null>(null);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
 
+  // Load collections and variables on mount
+  useEffect(() => {
+    postMessage({ command: 'loadCollections', payload: undefined });
+    postMessage({ command: 'loadVariables', payload: undefined });
+  }, []);
+
   useMessageListener((message: HostToWebviewMessage) => {
     switch (message.command) {
       case 'responseReceived':
@@ -41,13 +48,39 @@ export const MainView: React.FC = () => {
         break;
       case 'openRequest': {
         const req = message.payload.request;
-        useRequestStore.getState().loadRequest(req);
         const tabStore = useTabStore.getState();
-        tabStore.updateTab(tabStore.activeTabIndex, {
-          name: req.name || req.url || 'Untitled',
-          method: req.method,
-          url: req.url,
-        });
+        const requestState = useRequestStore.getState();
+        const tabName = req.name || req.url || 'Untitled';
+
+        // If request is already open in a tab, switch to it
+        if (req.url) {
+          const existingIndex = tabStore.tabs.findIndex(
+            (tab) => tab.url === req.url && tab.method === req.method
+          );
+          if (existingIndex !== -1) {
+            tabStore.setActiveTab(existingIndex);
+            requestState.loadRequest(req);
+            tabStore.updateTab(existingIndex, {
+              name: tabName,
+              method: req.method,
+              url: req.url,
+            });
+            break;
+          }
+        }
+
+        // Always open a new tab (unless at limit, then reuse current)
+        if (tabStore.tabs.length >= 10) {
+          requestState.loadRequest(req);
+          tabStore.updateTab(tabStore.activeTabIndex, {
+            name: tabName,
+            method: req.method,
+            url: req.url,
+          });
+        } else {
+          tabStore.addPrepopulatedTab(tabName, req.method, req.url);
+          requestState.loadRequest(req);
+        }
         break;
       }
       case 'error':

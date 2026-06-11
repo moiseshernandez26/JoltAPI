@@ -28,7 +28,8 @@ export type WebviewToHostMessage =
   | IMessage<'showOpenDialog', { filters: Record<string, string[]> }>
   | IMessage<'showSaveDialog', { defaultUri?: string; filters: Record<string, string[]> }>
   | IMessage<'copyToClipboard', { text: string }>
-  | IMessage<'copyCurl', { request: IHttpRequest; variables: IVariableSet }>;
+  | IMessage<'copyCurl', { request: IHttpRequest; variables: IVariableSet }>
+  | IMessage<'openInPanel', { request: IHttpRequest }>;
 
 export type HostToWebviewMessage =
   | IMessage<'responseReceived', { requestId: string; response: IHttpResponse }>

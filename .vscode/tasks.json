@@ -1,0 +1,29 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "type": "npm",
+      "script": "compile",
+      "group": "build",
+      "problemMatcher": "$tsc",
+      "label": "npm: compile",
+      "detail": "tsc -p tsconfig.src.json"
+    },
+    {
+      "type": "npm",
+      "script": "watch",
+      "group": "build",
+      "problemMatcher": "$tsc-watch",
+      "label": "npm: watch",
+      "isBackground": true,
+      "detail": "tsc -p tsconfig.src.json -watch"
+    },
+    {
+      "type": "npm",
+      "script": "build:webview",
+      "group": "build",
+      "label": "npm: build:webview",
+      "detail": "Build the React webview"
+    }
+  ]
+}

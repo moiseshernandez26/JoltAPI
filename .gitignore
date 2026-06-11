@@ -1,0 +1,12 @@
+node_modules/
+out/
+dist/
+webview-ui/dist/
+webview-ui/node_modules/
+.joltapi/
+*.vsix
+.DS_Store
+
+# LLM session memory (private — regenerated from scratch if missing)
+docs/SPEC.md
+docs/handoff/

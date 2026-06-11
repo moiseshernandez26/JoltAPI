@@ -1,0 +1,12 @@
+.vscode/**
+.vscode-test/**
+node_modules/
+src/**
+webview-ui/**
+tests/**
+.gitignore
+tsconfig.json
+tsconfig.src.json
+CHANGELOG.md
+CONTRIBUTING.md
+docs/**

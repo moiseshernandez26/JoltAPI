@@ -1,0 +1,317 @@
+{
+  "name": "joltapi",
+  "displayName": "JoltAPI",
+  "description": "A UI-driven REST API client for VS Code — build, send, and inspect HTTP requests without leaving the editor.",
+  "version": "0.1.0",
+  "publisher": "joltapi",
+  "license": "MIT",
+  "icon": "JoltIcon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/anomalyco/joltapi"
+  },
+  "engines": {
+    "vscode": "^1.82.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "joltapi.open",
+        "title": "Open JoltAPI",
+        "category": "JoltAPI"
+      },
+      {
+        "command": "joltapi.newRequest",
+        "title": "New Request",
+        "category": "JoltAPI",
+        "icon": "$(add)"
+      },
+      {
+        "command": "joltapi.refreshCollections",
+        "title": "Refresh",
+        "category": "JoltAPI",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "joltapi.addCollection",
+        "title": "New Collection",
+        "category": "JoltAPI",
+        "icon": "$(add)"
+      },
+      {
+        "command": "joltapi.collectionDelete",
+        "title": "Delete Collection",
+        "category": "JoltAPI",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "joltapi.requestDelete",
+        "title": "Delete",
+        "category": "JoltAPI",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "joltapi.requestMove",
+        "title": "Move to...",
+        "category": "JoltAPI",
+        "icon": "$(arrow-right)"
+      },
+      {
+        "command": "joltapi.openRequest",
+        "title": "Open Request",
+        "category": "JoltAPI",
+        "icon": "$(go-to-file)"
+      },
+      {
+        "command": "joltapi.refreshHistory",
+        "title": "Refresh",
+        "category": "JoltAPI",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "joltapi.clearHistory",
+        "title": "Clear History",
+        "category": "JoltAPI",
+        "icon": "$(clear-all)"
+      },
+      {
+        "command": "joltapi.refreshVariables",
+        "title": "Refresh",
+        "category": "JoltAPI",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "joltapi.addVariable",
+        "title": "Add Variable",
+        "category": "JoltAPI",
+        "icon": "$(add)"
+      },
+      {
+        "command": "joltapi.editVariable",
+        "title": "Edit",
+        "category": "JoltAPI",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "joltapi.deleteVariable",
+        "title": "Delete",
+        "category": "JoltAPI",
+        "icon": "$(trash)"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "joltapi.open",
+        "key": "ctrl+shift+j",
+        "mac": "cmd+shift+j"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "joltapi.open",
+          "group": "navigation",
+          "when": "editorFocus"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "joltapi.open",
+          "group": "navigation",
+          "when": "editorFocus"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "joltapi.addCollection",
+          "when": "view == joltapi.collections",
+          "group": "navigation@2"
+        },
+        {
+          "command": "joltapi.refreshCollections",
+          "when": "view == joltapi.collections",
+          "group": "navigation@2"
+        },
+        {
+          "command": "joltapi.clearHistory",
+          "when": "view == joltapi.history",
+          "group": "navigation@1"
+        },
+        {
+          "command": "joltapi.refreshHistory",
+          "when": "view == joltapi.history",
+          "group": "navigation@2"
+        },
+        {
+          "command": "joltapi.addVariable",
+          "when": "view == joltapi.variables",
+          "group": "navigation@1"
+        },
+        {
+          "command": "joltapi.refreshVariables",
+          "when": "view == joltapi.variables",
+          "group": "navigation@2"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "joltapi.requestDelete",
+          "when": "view == joltapi.collections && viewItem == request",
+          "group": "inline"
+        },
+        {
+          "command": "joltapi.requestMove",
+          "when": "view == joltapi.collections && viewItem == request",
+          "group": "1_move@1"
+        },
+        {
+          "command": "joltapi.collectionDelete",
+          "when": "view == joltapi.collections && viewItem == collection",
+          "group": "inline"
+        },
+        {
+          "command": "joltapi.editVariable",
+          "when": "view == joltapi.variables && viewItem =~ /^variable/",
+          "group": "inline"
+        },
+        {
+          "command": "joltapi.deleteVariable",
+          "when": "view == joltapi.variables && viewItem =~ /^variable/",
+          "group": "1_delete@1"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "JoltAPI",
+      "properties": {
+        "joltapi.timeout": {
+          "type": "number",
+          "default": 30000,
+          "description": "Request timeout in milliseconds."
+        },
+        "joltapi.sslVerify": {
+          "type": "boolean",
+          "default": true,
+          "description": "Verify SSL certificates. Disable for self-signed certificates."
+        },
+        "joltapi.followRedirects": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically follow HTTP redirects."
+        },
+        "joltapi.maxRedirects": {
+          "type": "number",
+          "default": 5,
+          "description": "Maximum number of redirects to follow."
+        },
+        "joltapi.defaultHeaders": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "object",
+            "properties": {
+              "key": { "type": "string" },
+              "value": { "type": "string" }
+            }
+          },
+          "description": "Default headers added to every request."
+        },
+        "joltapi.proxy.host": {
+          "type": "string",
+          "default": "",
+          "description": "Default proxy host."
+        },
+        "joltapi.proxy.port": {
+          "type": "number",
+          "default": 0,
+          "description": "Default proxy port."
+        },
+        "joltapi.proxy.username": {
+          "type": "string",
+          "default": "",
+          "description": "Default proxy username."
+        },
+        "joltapi.historyLimit": {
+          "type": "number",
+          "default": 50,
+          "description": "Maximum number of history entries to keep."
+        }
+      }
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "joltapi-sidebar",
+          "title": "JoltAPI",
+          "icon": "icon_activity.svg"
+        }
+      ]
+    },
+    "views": {
+      "joltapi-sidebar": [
+        {
+          "id": "joltapi.overview",
+          "name": "Overview",
+          "icon": "$(info)"
+        },
+        {
+          "id": "joltapi.collections",
+          "name": "Collections",
+          "icon": "$(folder)"
+        },
+        {
+          "id": "joltapi.history",
+          "name": "History",
+          "icon": "$(history)"
+        },
+        {
+          "id": "joltapi.variables",
+          "name": "Variables",
+          "icon": "$(symbol-variable)"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "joltapi.overview",
+        "contents": "Welcome to JoltAPI! A UI-driven REST API client for VS Code.\n[Open JoltAPI](command:joltapi.open)"
+      },
+      {
+        "view": "joltapi.collections",
+        "contents": "Build, send, and inspect HTTP requests without leaving the editor.\n[Open JoltAPI](command:joltapi.open)"
+      },
+      {
+        "view": "joltapi.history",
+        "contents": "Your request history will appear here.\n[Open JoltAPI](command:joltapi.open)"
+      },
+      {
+        "view": "joltapi.variables",
+        "contents": "[Add Variable](command:joltapi.addVariable) to use `{{variable}}` interpolation in requests.\n\n> **Warning:** Variables are stored in plain text on disk. Do not store production credentials here."
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run build",
+    "build": "npm run compile && npm run build:webview",
+    "compile": "tsc -p tsconfig.src.json",
+    "watch": "tsc -p tsconfig.src.json -watch",
+    "build:webview": "cd webview-ui && npm run build",
+    "watch:webview": "cd webview-ui && npm run dev",
+    "dev": "npm run compile && npm run build:webview",
+    "lint": "tsc --noEmit -p tsconfig.src.json && cd webview-ui && npx tsc --noEmit",
+    "test": "npx tsc -p tsconfig.json && npx mocha --ui tdd out/tests/**/*.test.js"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.6",
+    "@types/node": "^20.10.0",
+    "@types/vscode": "^1.82.0",
+    "@vscode/test-electron": "^2.3.8",
+    "mocha": "^10.2.0",
+    "typescript": "^5.3.0"
+  }
+}

@@ -8,3 +8,6 @@ tests/**
 tsconfig.json
 tsconfig.src.json
 docs/**
+.opencode/**
+AGENTS.md
+joltapi-video/**

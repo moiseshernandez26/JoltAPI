@@ -51,6 +51,7 @@ interface RequestState {
   setIsSending: (sending: boolean) => void;
   loadRequest: (request: IHttpRequest) => void;
   resetRequest: () => void;
+  setName: (name: string) => void;
 }
 
 export const useRequestStore = create<RequestState>((set) => ({
@@ -113,6 +114,12 @@ export const useRequestStore = create<RequestState>((set) => ({
       currentRequest: createDefaultRequest(),
       isDirty: false,
     }),
+
+  setName: (name) =>
+    set((state) => ({
+      currentRequest: { ...state.currentRequest, name },
+      isDirty: false,
+    })),
 }));
 
 /**

@@ -133,11 +133,11 @@ panels/webviewPanel.ts   →  delegates to messageHandlers
 ## State Management
 
 Webview uses **Zustand** with dedicated stores per domain:
-- `requestStore` — current request form state (isDirty, loadRequest, resetRequest)
+- `requestStore` — current request form state (isDirty, loadRequest, resetRequest, setName)
 - `responseStore` — last response
 - `collectionStore` — loaded collections (for SaveRequestDialog dropdown)
 - `variableStore` — flat variable list (for interpolation)
-- `tabStore` — multi-tab state: `tabs: IRequestTab[]`, `activeTabIndex`, `addTab`, `addPrepopulatedTab(name, method, url)`, `removeTab`, `setActiveTab`, `updateTab`, `closeAllTabs`, `closeOtherTabs`
+- `tabStore` — multi-tab state: `tabs: IRequestTab[]`, `activeTabIndex`, `addTab`, `addPrepopulatedTab(name, method, url)`, `removeTab`, `setActiveTab`, `updateTab`, `closeAllTabs`, `closeOtherTabs`. Tabs have a `fromCollection: boolean` flag — `true` for tabs opened from collections, `false` for manual tabs. This flag controls which tabs are auto-closed during rename/delete sync.
 
 Sidebar uses its own store:
 - `sidebarStore` — collections, history, variables, activeTab sidebar tab, expandedCollections, isLoading
@@ -200,6 +200,15 @@ Happens at **send time** in `handlers/sendRequestHandler.ts`. The `interpolateTe
 - Always use `getState()` inside message listeners and event callbacks — React hook closures (`useStore(s => s.xxx)`) are stale by one render. Use hook values only for rendering (JSX).
 - `addPrepopulatedTab(name, method, url)` in `tabStore` creates a tab with data pre-populated atomically. Prefer this over `addTab()` + `updateTab()` when opening requests.
 - After closing the active tab, always `loadRequest()` the new active tab's data to prevent stale data propagation.
+- `setName(name)` in `requestStore` updates only `currentRequest.name` without marking `isDirty`. Use this for programmatic name updates (e.g., rename sync) where user hasn't edited the name manually.
+
+## Tab sync on collections rename/delete
+
+When `collectionsLoaded` arrives (after any collection mutation), `syncTabs()` in `MainView.tsx` synchronizes tabs:
+1. **Rename sync**: Builds a `method::url` → `collectionRequest.name` map from all collections. If a tab's name differs from the collection, updates it. Also calls `requestStore.setName()` for the active tab to prevent the `useEffect` in `RequestTabBar` from overwriting the new name with the stale old one.
+2. **Delete sync**: Filters out any tab where `fromCollection: true` AND its `method::url` is not found in any collection. If all tabs removed, creates a fresh default. If the active tab was removed, loads the new active tab's data.
+
+The sync logic lives in `MainView.tsx` (not in `tabStore`) because it needs access to both `tabStore` and `requestStore` simultaneously.
 
 ## When a File Is Getting Too Long
 

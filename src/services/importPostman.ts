@@ -3,7 +3,6 @@ import type { ICollection, ICollectionRequest, IHttpRequest, HttpMethod, AuthTyp
 interface PostmanCollection {
   info: { name: string; _postman_id?: string; description?: string };
   item: PostmanItem[];
-  variable?: PostmanVariable[];
 }
 
 interface PostmanItem {
@@ -21,11 +20,6 @@ interface PostmanItem {
   item?: PostmanItem[];
 }
 
-interface PostmanVariable {
-  key: string;
-  value: string;
-}
-
 export function isPostmanCollection(data: unknown): data is PostmanCollection {
   const d = data as Record<string, unknown>;
   return !!(d && d.info && typeof d.info === 'object' && (d.info as Record<string, unknown>).name && Array.isArray(d.item));
@@ -39,14 +33,13 @@ function generateId(): string {
   });
 }
 
-export function convertPostmanToCollection(pm: PostmanCollection, filePath: string): ICollection {
+export function convertPostmanToCollection(pm: PostmanCollection): ICollection {
   const now = Date.now();
   const requests = convertPostmanItems(pm.item, now);
 
   return {
     id: generateId(),
     name: pm.info.name,
-    description: pm.info.description,
     requests,
     createdAt: now,
     updatedAt: now,
@@ -99,7 +92,6 @@ function convertPostmanItems(items: PostmanItem[], now: number): ICollectionRequ
       result.push({
         id: generateId(),
         name: item.name,
-        description: undefined,
         request: {
           id: generateId(),
           name: item.name,

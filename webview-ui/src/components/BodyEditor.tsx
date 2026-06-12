@@ -1,5 +1,5 @@
 import React from 'react';
-import type { IRequestBody, BodyType, RawContentType, IKeyValuePair } from '../types';
+import type { IRequestBody, BodyType, RawContentType } from '../types';
 import { KeyValueEditor } from './KeyValueEditor';
 import { HighlightedTextarea } from './HighlightedTextarea';
 

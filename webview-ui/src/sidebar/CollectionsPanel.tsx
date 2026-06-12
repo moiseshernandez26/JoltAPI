@@ -17,41 +17,74 @@ export const CollectionsPanel: React.FC = () => {
   const expandedCollections = useSidebarStore((s) => s.expandedCollections);
   const toggleCollection = useSidebarStore((s) => s.toggleCollection);
   const isLoading = useSidebarStore((s) => s.isLoading);
+  const activeRequestId = useSidebarStore((s) => s.activeRequestId);
+  const setActiveRequest = useSidebarStore((s) => s.setActiveRequest);
   const sendMessage = useSendMessage();
   const [contextMenu, setContextMenu] = useState<ContextMenu | null>(null);
   const [addCollectionOpen, setAddCollectionOpen] = useState(false);
   const [newName, setNewName] = useState('');
   const [moveTarget, setMoveTarget] = useState<{ requestId: string; fromId: string } | null>(null);
+  const [moveToCollectionId, setMoveToCollectionId] = useState('');
+  const [renameTarget, setRenameTarget] = useState<{ collectionId: string; requestId: string; name: string } | null>(null);
+  const [renameValue, setRenameValue] = useState('');
 
   useEffect(() => {
-    const close = (): void => { setContextMenu(null); setMoveTarget(null); };
+    const close = (): void => { setContextMenu(null); setMoveTarget(null); setRenameTarget(null); };
     document.addEventListener('click', close);
     return () => document.removeEventListener('click', close);
   }, []);
 
+  useEffect(() => {
+    if (moveTarget && !moveToCollectionId) {
+      const targets = collections.filter((c) => c.id !== moveTarget.fromId);
+      if (targets.length > 0) {
+        setMoveToCollectionId(targets[0].id);
+      }
+    }
+    if (!moveTarget) {
+      setMoveToCollectionId('');
+    }
+  }, [moveTarget, collections, moveToCollectionId]);
+
   const handleOpenRequest = useCallback((cr: ICollectionRequest): void => {
     const req: IHttpRequest = { ...cr.request, name: cr.name };
+    setActiveRequest(cr.id);
     sendMessage({ command: 'openInPanel', payload: { request: req } });
-  }, [sendMessage]);
+  }, [sendMessage, setActiveRequest]);
 
   const handleDeleteRequest = useCallback((collectionId: string, requestId: string): void => {
+    if (activeRequestId === requestId) { setActiveRequest(null); }
     sendMessage({ command: 'deleteRequest', payload: { collectionId, requestId } });
-  }, [sendMessage]);
+  }, [sendMessage, activeRequestId, setActiveRequest]);
 
   const handleRenameRequest = useCallback((collectionId: string, requestId: string, currentName: string): void => {
-    const newName = window.prompt('Rename request:', currentName);
-    if (newName && newName.trim() && newName.trim() !== currentName) {
-      sendMessage({ command: 'renameRequest', payload: { collectionId, requestId, newName: newName.trim() } });
+    setRenameTarget({ collectionId, requestId, name: currentName });
+    setRenameValue(currentName);
+  }, []);
+
+  const handleRenameConfirm = useCallback((): void => {
+    if (!renameTarget || !renameValue.trim() || renameValue.trim() === renameTarget.name) {
+      setRenameTarget(null);
+      return;
     }
-  }, [sendMessage]);
+    sendMessage({ command: 'renameRequest', payload: { collectionId: renameTarget.collectionId, requestId: renameTarget.requestId, newName: renameValue.trim() } });
+    setRenameTarget(null);
+  }, [sendMessage, renameTarget, renameValue]);
 
   const handleDeleteCollection = useCallback((collectionId: string): void => {
+    if (activeRequestId) {
+      const collection = collections.find((c) => c.id === collectionId);
+      if (collection && collection.requests.some((r) => r.id === activeRequestId)) {
+        setActiveRequest(null);
+      }
+    }
     sendMessage({ command: 'deleteCollection', payload: { collectionId } });
-  }, [sendMessage]);
+  }, [sendMessage, collections, activeRequestId, setActiveRequest]);
 
   const handleMoveRequest = useCallback((fromId: string, requestId: string, toId: string): void => {
     sendMessage({ command: 'moveRequest', payload: { fromCollectionId: fromId, toCollectionId: toId, requestId } });
     setMoveTarget(null);
+    setMoveToCollectionId('');
   }, [sendMessage]);
 
   const handleAddCollection = useCallback((): void => {
@@ -154,6 +187,7 @@ export const CollectionsPanel: React.FC = () => {
                 style={{
                   ...styles.requestRow,
                   ...(contextMenu?.requestId === cr.id ? styles.selectedRow : {}),
+                  ...(activeRequestId === cr.id && !contextMenu ? styles.activeRequestRow : {}),
                 }}
                 onClick={() => handleOpenRequest(cr)}
                 onContextMenu={(e) => onRequestContext(e, collection.id, cr.id)}
@@ -180,7 +214,8 @@ export const CollectionsPanel: React.FC = () => {
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  const cr = collections
+                  const store = useSidebarStore.getState();
+                  const cr = store.collections
                     .find((c) => c.id === contextMenu.collectionId)
                     ?.requests.find((r) => r.id === contextMenu.requestId);
                   handleRenameRequest(contextMenu.collectionId, contextMenu.requestId!, cr?.name || '');
@@ -228,19 +263,50 @@ export const CollectionsPanel: React.FC = () => {
       )}
 
       {moveTarget && targets.length > 0 && (
-        <div style={styles.moveOverlay} onClick={() => setMoveTarget(null)}>
+        <div style={styles.moveOverlay} onClick={() => { setMoveTarget(null); setMoveToCollectionId(''); }}>
           <div style={styles.moveModal} onClick={(e) => e.stopPropagation()}>
-            <div style={styles.moveTitle}>Move request to:</div>
-            {targets.map((c) => (
+            <div style={styles.moveTitle}>Move request to</div>
+            <select
+              value={moveToCollectionId}
+              onChange={(e) => setMoveToCollectionId(e.target.value)}
+              style={styles.moveSelect}
+            >
+              {targets.map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+            <div style={styles.modalActions}>
+              <button onClick={() => { setMoveTarget(null); setMoveToCollectionId(''); }} style={styles.moveCancel}>Cancel</button>
               <button
-                key={c.id}
-                onClick={() => handleMoveRequest(moveTarget.fromId, moveTarget.requestId, c.id)}
-                style={styles.moveItem}
+                onClick={() => handleMoveRequest(moveTarget.fromId, moveTarget.requestId, moveToCollectionId)}
+                disabled={!moveToCollectionId}
+                style={styles.modalConfirm}
               >
-                📁 {c.name}
+                Move
               </button>
-            ))}
-            <button onClick={() => setMoveTarget(null)} style={styles.moveCancel}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {renameTarget && (
+        <div style={styles.moveOverlay} onClick={() => setRenameTarget(null)}>
+          <div style={styles.moveModal} onClick={(e) => e.stopPropagation()}>
+            <div style={styles.moveTitle}>Rename request</div>
+            <input
+              type="text"
+              value={renameValue}
+              onChange={(e) => setRenameValue(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') { handleRenameConfirm(); } if (e.key === 'Escape') { setRenameTarget(null); } }}
+              style={styles.moveSelect}
+              autoFocus
+            />
+            <div style={styles.modalActions}>
+              <button onClick={() => setRenameTarget(null)} style={styles.moveCancel}>Cancel</button>
+              <button onClick={handleRenameConfirm} disabled={!renameValue.trim()} style={styles.modalConfirm}>
+                Rename
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -289,6 +355,7 @@ const styles: Record<string, React.CSSProperties> = {
     cursor: 'pointer', gap: '2px', userSelect: 'none',
   },
   selectedRow: { background: 'var(--vscode-list-activeSelectionBackground)' },
+  activeRequestRow: { background: 'var(--vscode-list-activeSelectionBackground)' },
   chevron: { fontSize: '10px', width: '12px', color: 'var(--vscode-sideBarTitle-foreground)' },
   folderIcon: { fontSize: '12px' },
   collectionName: {
@@ -333,27 +400,37 @@ const styles: Record<string, React.CSSProperties> = {
     background: 'var(--vscode-menu-background)',
     border: '1px solid var(--vscode-menu-border)',
     borderRadius: '6px', boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
-    minWidth: '160px', maxWidth: '220px',
-    maxHeight: '60vh', overflow: 'auto', padding: '8px 0',
+    minWidth: '200px', maxWidth: '260px',
+    padding: '12px',
   },
   moveTitle: {
-    padding: '4px 12px 8px', fontSize: '10px',
-    color: 'var(--vscode-descriptionForeground)',
-    borderBottom: '1px solid var(--vscode-panel-border)',
-    marginBottom: '4px',
+    fontSize: '11px', fontWeight: 600,
+    color: 'var(--vscode-foreground)',
+    marginBottom: '8px',
   },
-  moveItem: {
-    display: 'block', width: '100%', padding: '6px 12px', fontSize: '11px',
-    border: 'none', background: 'none',
-    color: 'var(--vscode-menu-foreground)',
-    cursor: 'pointer', textAlign: 'left' as const,
+  moveSelect: {
+    width: '100%', padding: '4px 8px', fontSize: '12px',
+    background: 'var(--vscode-input-background)',
+    color: 'var(--vscode-input-foreground)',
+    border: '1px solid var(--vscode-input-border)',
+    borderRadius: '2px', marginBottom: '10px',
+  },
+  modalActions: {
+    display: 'flex', justifyContent: 'flex-end', gap: '6px',
   },
   moveCancel: {
-    display: 'block', width: '100%', padding: '6px 12px', fontSize: '11px',
-    border: 'none', background: 'none',
-    color: 'var(--vscode-descriptionForeground)',
-    cursor: 'pointer', textAlign: 'left' as const,
-    borderTop: '1px solid var(--vscode-panel-border)', marginTop: '4px', paddingTop: '8px',
+    padding: '4px 12px', fontSize: '11px',
+    border: 'none', borderRadius: '2px',
+    background: 'var(--vscode-button-secondaryBackground)',
+    color: 'var(--vscode-button-secondaryForeground)',
+    cursor: 'pointer',
+  },
+  modalConfirm: {
+    padding: '4px 12px', fontSize: '11px',
+    border: 'none', borderRadius: '2px',
+    background: 'var(--vscode-button-background)',
+    color: 'var(--vscode-button-foreground)',
+    cursor: 'pointer', fontWeight: 600,
   },
   empty: {
     padding: '12px 8px', fontSize: '11px',

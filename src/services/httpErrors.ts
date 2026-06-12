@@ -95,9 +95,5 @@ export function classifyFetchError(err: unknown, timeoutMs: number): HttpError {
     return new HttpError(`Request failed: ${err.message}`, 'UNKNOWN', err);
   }
 
-  return new HttpError(
-    err instanceof Error ? err.message : 'An unexpected error occurred',
-    'UNKNOWN',
-    err,
-  );
+  return new HttpError('An unexpected error occurred', 'UNKNOWN', err);
 }

@@ -33,7 +33,6 @@ export interface IKeyValuePair {
   key: string;
   value: string;
   enabled: boolean;
-  description?: string;
 }
 
 /**

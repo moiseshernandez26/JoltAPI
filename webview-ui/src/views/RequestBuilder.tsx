@@ -1,9 +1,7 @@
 import React from 'react';
 import {
   useRequestStore,
-  useVariableStore,
 } from '../store';
-import { useSendMessage } from '../hooks';
 import {
   RequestTabs,
   KeyValueEditor,
@@ -11,7 +9,6 @@ import {
   AuthEditor,
   UrlBar,
 } from '../components';
-import type { IHttpRequest } from '../types';
 import { HEADER_SUGGESTIONS, HEADER_VALUE_SUGGESTIONS } from '../utils/requestHeaders';
 
 interface RequestBuilderProps {
@@ -30,7 +27,6 @@ export const RequestBuilder: React.FC<RequestBuilderProps> = ({
   const setActiveTab = useRequestStore((s) => s.setActiveTab);
   const setMethod = useRequestStore((s) => s.setMethod);
   const setUrl = useRequestStore((s) => s.setUrl);
-  const variables = useVariableStore((s) => s.variables);
 
   return (
     <>

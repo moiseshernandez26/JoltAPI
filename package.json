@@ -27,7 +27,7 @@
       },
       {
         "command": "joltapi.newRequest",
-        "title": "New Request",
+        "title": "Open App",
         "category": "JoltAPI",
         "icon": "$(add)"
       },

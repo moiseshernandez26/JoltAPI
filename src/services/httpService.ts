@@ -57,14 +57,14 @@ export async function executeRequest(request: IResolvedHttpRequest): Promise<IHt
     fetchOptions.body = request.body;
   }
 
-  if (request.proxy?.enabled && request.proxy.host && request.proxy.port) {
-    const agent = createProxyAgent(request.proxy);
+  const hasProxy = request.proxy?.enabled && request.proxy.host && request.proxy.port;
+
+  if (hasProxy) {
+    const agent = createProxyAgent(request.proxy!);
     if (agent) {
       (fetchOptions as Record<string, unknown>).dispatcher = agent;
     }
-  }
-
-  if (!request.sslVerify) {
+  } else if (!request.sslVerify) {
     const agent = createInsecureAgent();
     if (agent) {
       (fetchOptions as Record<string, unknown>).dispatcher = agent;

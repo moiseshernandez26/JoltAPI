@@ -7,6 +7,10 @@ webview-ui/node_modules/
 *.vsix
 .DS_Store
 
+# HyperFrames — renders are build artifacts; source is index.html
+joltapi-video/renders/
+joltapi-video/node_modules/
+
 # LLM session memory (private — regenerated from scratch if missing)
 docs/SPEC.md
 docs/handoff/

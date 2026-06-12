@@ -18,7 +18,7 @@ export async function importCollection(filePath: string): Promise<ICollection | 
   }
 
   if (isPostmanCollection(data)) {
-    return convertPostmanToCollection(data, filePath);
+    return convertPostmanToCollection(data);
   }
 
   if (isInsomniaExport(data)) {

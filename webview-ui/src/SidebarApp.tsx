@@ -68,8 +68,8 @@ export const SidebarApp: React.FC = () => {
   return (
     <div style={styles.container}>
       <div style={styles.actions}>
-        <button onClick={handleNewRequest} style={styles.newReqBtn} title="New Request">
-          + New Request
+        <button onClick={handleNewRequest} style={styles.newReqBtn} title="Open JoltAPI">
+          + Open App
         </button>
       </div>
       <div style={styles.tabBar}>

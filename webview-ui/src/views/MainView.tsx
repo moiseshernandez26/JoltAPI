@@ -12,7 +12,7 @@ import { SaveRequestDialog } from '../components';
 import { RequestBuilder, formatRequestHeaders } from './RequestBuilder';
 import { ResponseView } from './ResponseView';
 import { RequestTabBar } from '../components';
-import type { HostToWebviewMessage } from '../types';
+import type { HostToWebviewMessage, ICollection } from '../types';
 
 export const MainView: React.FC = () => {
   const currentRequest = useRequestStore((s) => s.currentRequest);
@@ -22,6 +22,7 @@ export const MainView: React.FC = () => {
   const setCollections = useCollectionStore((s) => s.setCollections);
   const setVariableSet = useVariableStore((s) => s.setVariableSet);
   const variables = useVariableStore((s) => s.variables);
+  const currentResponse = useResponseStore((s) => s.currentResponse);
   const { sendRequest } = useRequestState();
 
   const [lastError, setLastError] = useState<string | null>(null);
@@ -33,6 +34,68 @@ export const MainView: React.FC = () => {
     postMessage({ command: 'loadVariables', payload: undefined });
   }, []);
 
+  const syncTabs = (collections: ICollection[]): void => {
+    const tabStore = useTabStore.getState();
+    const requestStore = useRequestStore.getState();
+
+    const nameMap = new Map<string, string>();
+    for (const c of collections) {
+      for (const cr of c.requests) {
+        nameMap.set(`${cr.request.method}::${cr.request.url}`, cr.name);
+      }
+    }
+
+    const updatedTabs = tabStore.tabs
+      .map((tab) => {
+        if (!tab.url) {return tab;}
+        const key = `${tab.method}::${tab.url}`;
+        const collectionName = nameMap.get(key);
+        if (collectionName && collectionName !== tab.name) {
+          if (tabStore.activeTabIndex === tabStore.tabs.indexOf(tab)) {
+            requestStore.setName(collectionName);
+          }
+          return { ...tab, name: collectionName };
+        }
+        return tab;
+      })
+      .filter((tab) => {
+        if (!tab.fromCollection) {return true;}
+        if (!tab.url) {return true;}
+        const key = `${tab.method}::${tab.url}`;
+        return nameMap.has(key);
+      });
+
+    if (updatedTabs.length === 0) {
+      useTabStore.setState({ tabs: [{ id: 'default', name: 'Untitled', method: 'GET', url: '', fromCollection: false }], activeTabIndex: 0 });
+      requestStore.resetRequest();
+      return;
+    }
+
+    let newActiveIndex = tabStore.activeTabIndex;
+    if (newActiveIndex >= updatedTabs.length) {
+      newActiveIndex = updatedTabs.length - 1;
+    }
+
+    const removedTabs = tabStore.tabs.length - updatedTabs.length;
+    if (removedTabs > 0 && updatedTabs.length > 0) {
+      const newTab = updatedTabs[newActiveIndex];
+      requestStore.loadRequest({
+        id: newTab.id,
+        name: newTab.name,
+        method: newTab.method,
+        url: newTab.url,
+        headers: [],
+        queryParams: [],
+        body: { type: 'none' },
+        auth: { type: 'none' },
+        proxy: { enabled: false, host: '', port: 0 },
+        settings: { timeout: 30000, sslVerify: true, followRedirects: true, maxRedirects: 5 },
+      });
+    }
+
+    useTabStore.setState({ tabs: updatedTabs, activeTabIndex: newActiveIndex });
+  };
+
   useMessageListener((message: HostToWebviewMessage) => {
     switch (message.command) {
       case 'responseReceived':
@@ -42,6 +105,7 @@ export const MainView: React.FC = () => {
         break;
       case 'collectionsLoaded':
         setCollections(message.payload.collections);
+        syncTabs(message.payload.collections);
         break;
       case 'variablesLoaded':
         setVariableSet(message.payload.variables);
@@ -51,6 +115,7 @@ export const MainView: React.FC = () => {
         const tabStore = useTabStore.getState();
         const requestState = useRequestStore.getState();
         const tabName = req.name || req.url || 'Untitled';
+        const fromCollection = !!req.url;
 
         // If request is already open in a tab, switch to it
         if (req.url) {
@@ -64,7 +129,16 @@ export const MainView: React.FC = () => {
               name: tabName,
               method: req.method,
               url: req.url,
+              fromCollection,
             });
+            break;
+          }
+        } else {
+          // Empty request from "Open App" — reuse existing empty tab if present
+          const emptyIndex = tabStore.tabs.findIndex((tab) => !tab.url);
+          if (emptyIndex !== -1) {
+            tabStore.setActiveTab(emptyIndex);
+            requestState.loadRequest(req);
             break;
           }
         }
@@ -76,6 +150,7 @@ export const MainView: React.FC = () => {
             name: tabName,
             method: req.method,
             url: req.url,
+            fromCollection,
           });
         } else {
           tabStore.addPrepopulatedTab(tabName, req.method, req.url);
@@ -115,7 +190,7 @@ export const MainView: React.FC = () => {
         />
 
         <ResponseView
-          currentResponse={useResponseStore((s) => s.currentResponse)}
+          currentResponse={currentResponse}
           lastError={lastError}
           isSending={isSending}
           onDismissError={() => setLastError(null)}

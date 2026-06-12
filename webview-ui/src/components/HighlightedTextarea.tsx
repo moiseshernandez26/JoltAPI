@@ -9,7 +9,7 @@ interface HighlightedTextareaProps {
   errorMessage?: string | null;
 }
 
-const VARIABLE_COLOR = '#f0a030';
+const VARIABLE_COLOR = '#e0a030';
 
 /**
  * A textarea with syntax highlighting overlay.

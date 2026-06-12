@@ -10,6 +10,7 @@ interface SidebarState {
   activeTab: SidebarTab;
   expandedCollections: Set<string>;
   isLoading: boolean;
+  activeRequestId: string | null;
 
   setCollections: (collections: ICollection[]) => void;
   setHistory: (entries: IHistoryEntry[]) => void;
@@ -17,6 +18,7 @@ interface SidebarState {
   setActiveTab: (tab: SidebarTab) => void;
   toggleCollection: (id: string) => void;
   setIsLoading: (loading: boolean) => void;
+  setActiveRequest: (id: string | null) => void;
 }
 
 export const useSidebarStore = create<SidebarState>((set) => ({
@@ -26,6 +28,7 @@ export const useSidebarStore = create<SidebarState>((set) => ({
   activeTab: 'collections',
   expandedCollections: new Set<string>(),
   isLoading: true,
+  activeRequestId: null,
 
   setCollections: (collections) => set({ collections }),
   setHistory: (history) => set({ history }),
@@ -42,4 +45,5 @@ export const useSidebarStore = create<SidebarState>((set) => ({
       return { expandedCollections: next };
     }),
   setIsLoading: (isLoading) => set({ isLoading }),
+  setActiveRequest: (activeRequestId) => set({ activeRequestId }),
 }));

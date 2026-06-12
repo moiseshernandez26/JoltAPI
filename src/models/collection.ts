@@ -8,8 +8,6 @@ export interface ICollectionRequest {
   id: string;
   /** User-given name (e.g., "Get Users"). */
   name: string;
-  /** Optional description. */
-  description?: string;
   /** The full request model. */
   request: IHttpRequest;
   /** Creation timestamp (Unix ms). */
@@ -26,12 +24,8 @@ export interface ICollection {
   id: string;
   /** User-given name (e.g., "User Service API"). */
   name: string;
-  /** Optional description. */
-  description?: string;
   /** Saved requests in this collection. */
   requests: ICollectionRequest[];
-  /** Optional: default environment ID for this collection. */
-  environmentId?: string;
   /** Creation timestamp (Unix ms). */
   createdAt: number;
   /** Last modification timestamp (Unix ms). */

@@ -155,6 +155,23 @@ export const RequestTabBar: React.FC = () => {
           animation: tabGradientFlow 1.5s linear infinite;
           border-radius: 4px 4px 0 0;
         }
+        .tab-close-btn {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 14px;
+          height: 14px;
+          padding: 0;
+          background: transparent;
+          color: var(--vscode-descriptionForeground);
+          border: none;
+          border-radius: 3px;
+          cursor: pointer;
+        }
+        .tab-close-btn:hover {
+          background: rgba(255,255,255,0.1);
+          color: var(--vscode-foreground);
+        }
       `}</style>
       <div style={styles.tabBar}>
         <div style={styles.tabsContainer}>
@@ -174,13 +191,16 @@ export const RequestTabBar: React.FC = () => {
                 <span style={styles.tabMethod}>{tab.method}</span>
                 <span style={styles.tabName}>{tab.name || 'Untitled'}</span>
                 {tabs.length > 1 && (
-                  <button
-                    style={styles.closeBtn}
+                  <span
+                    className="tab-close-btn"
                     onClick={(e) => handleClose(e, index)}
                     aria-label="Close tab"
+                    title="Close"
                   >
-                    x
-                  </button>
+                    <svg width="8" height="8" viewBox="0 0 10 10" fill="none">
+                      <path d="M1 1l8 8M9 1l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                    </svg>
+                  </span>
                 )}
               </div>
             );
@@ -257,15 +277,6 @@ const styles: Record<string, React.CSSProperties> = {
     whiteSpace: 'nowrap',
     flex: 1,
     color: 'var(--vscode-foreground)',
-  },
-  closeBtn: {
-    padding: '0 2px',
-    backgroundColor: 'transparent',
-    color: 'var(--vscode-descriptionForeground)',
-    border: 'none',
-    cursor: 'pointer',
-    fontSize: '11px',
-    lineHeight: 1,
   },
   addBtn: {
     padding: '2px 8px',

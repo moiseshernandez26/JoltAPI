@@ -45,16 +45,6 @@ export const KeyValueEditor: React.FC<KeyValueEditorProps> = ({
     onChange(updated);
   };
 
-  const handleKeyDown = (
-    e: React.KeyboardEvent<HTMLInputElement>,
-    index: number,
-  ): void => {
-    if (e.key === 'Enter' && index === pairs.length - 1) {
-      e.preventDefault();
-      addRow();
-    }
-  };
-
   const getValueTips = (pair: IKeyValuePair): Suggestion[] | undefined => {
     if (!valueSuggestions) {return undefined;}
     const key = pair.key.toLowerCase();

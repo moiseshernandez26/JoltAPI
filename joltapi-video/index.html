@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        margin: 0; width: 1920px; height: 1080px; overflow: hidden;
+        background: #0a0e14;
+      }
+      body { font-family: "Inter", sans-serif; }
+
+      /* -- Ambient background -- */
+      .bg-base {
+        position: absolute; inset: 0;
+        background: radial-gradient(ellipse 70% 50% at 50% 45%, rgba(31,111,235,0.08) 0%, transparent 70%),
+                    radial-gradient(ellipse 40% 60% at 20% 80%, rgba(63,185,80,0.04) 0%, transparent 70%),
+                    radial-gradient(ellipse 40% 40% at 80% 20%, rgba(88,166,255,0.05) 0%, transparent 70%);
+      }
+      .bg-grid {
+        position: absolute; inset: 0;
+        background-image:
+          linear-gradient(rgba(88,166,255,0.025) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(88,166,255,0.025) 1px, transparent 1px);
+        background-size: 80px 80px;
+      }
+
+      /* -- Accent border top -- */
+      .accent-bar {
+        position: absolute; top: 0; left: 0; width: 1920px; height: 3px;
+        background: linear-gradient(90deg, #1f6feb, #58a6ff, #3fb950, #58a6ff, #1f6feb);
+        background-size: 200% 100%;
+      }
+
+      /* -- Logo -- */
+      .logo-icon {
+        width: 96px; height: 96px; border-radius: 22px;
+        background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+        display: flex; align-items: center; justify-content: center;
+        box-shadow: 0 0 80px rgba(59,130,246,0.35), 0 0 160px rgba(59,130,246,0.1);
+      }
+      .bolt { font-size: 48px; color: #fff; line-height: 1; }
+
+      /* -- Typography -- */
+      .title-xl {
+        font-size: 80px; font-weight: 800; color: #e6edf3;
+        letter-spacing: -1.5px; line-height: 1;
+      }
+      .text-blue { color: #58a6ff; }
+      .text-muted { color: #7d8590; }
+
+      .byline {
+        font-size: 20px; color: #484f58; font-weight: 500;
+        letter-spacing: 0.5px;
+      }
+      .byline-name { color: #58a6ff; }
+
+      /* -- Feature cards -- */
+      .feature-row {
+        display: flex; gap: 48px; align-items: flex-start;
+      }
+      .feat-card {
+        width: 360px; padding: 32px 28px; border-radius: 14px;
+        background: rgba(13,17,23,0.85);
+        border: 1px solid rgba(48,54,61,0.5);
+        backdrop-filter: blur(12px);
+      }
+      .feat-icon {
+        width: 44px; height: 44px; border-radius: 10px;
+        display: flex; align-items: center; justify-content: center;
+        margin-bottom: 16px; font-size: 22px;
+      }
+      .feat-icon.a { background: rgba(88,166,255,0.15); color: #58a6ff; }
+      .feat-icon.b { background: rgba(63,185,80,0.15);  color: #3fb950; }
+      .feat-icon.c { background: rgba(210,168,255,0.15); color: #d2a8ff; }
+      .feat-title { font-size: 18px; font-weight: 700; color: #e6edf3; margin-bottom: 6px; }
+      .feat-desc { font-size: 13px; color: #7d8590; line-height: 1.55; }
+
+      /* -- Code window -- */
+      .code-win {
+        border-radius: 14px; border: 1px solid #21262d; overflow: hidden;
+        background: #0d1117;
+        box-shadow: 0 0 60px rgba(31,111,235,0.08), 0 8px 40px rgba(0,0,0,0.4);
+      }
+      .code-bar {
+        display: flex; align-items: center; gap: 8px;
+        padding: 12px 18px; background: #161b22; border-bottom: 1px solid #21262d;
+      }
+      .code-dot { width: 12px; height: 12px; border-radius: 50%; }
+      .code-dot.r { background: #ff5f56; } .code-dot.y { background: #ffbd2e; } .code-dot.g { background: #27c93f; }
+      .code-bar-label { margin-left: 14px; font-size: 12px; color: #484f58; }
+      .code-body {
+        padding: 22px 28px;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 16px; line-height: 2;
+      }
+      .code-row { white-space: pre; }
+      .c-method { color: #79c0ff; font-weight: 600; }
+      .c-url    { color: #a5d6ff; }
+      .c-var    { color: #d2a8ff; }
+      .c-label  { color: #ff7b72; }
+      .c-val    { color: #a5d6ff; }
+      .c-status { color: #3fb950; font-weight: 600; }
+      .c-meta   { color: #7d8590; }
+      .c-hint   { color: #484f58; }
+
+      /* -- CTA -- */
+      .cta-main { font-size: 42px; font-weight: 700; color: #e6edf3; }
+      .cta-url  { font-size: 19px; color: #58a6ff; font-weight: 500; margin-top: 14px; }
+
+      /* -- Watermark -- */
+      .watermark {
+        position: absolute; bottom: 50px; right: 70px;
+        display: flex; align-items: center; gap: 12px; opacity: 0.45;
+      }
+      .wm-icon {
+        width: 38px; height: 38px; border-radius: 9px;
+        background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+        display: flex; align-items: center; justify-content: center;
+      }
+      .wm-bolt { font-size: 20px; color: #fff; line-height: 1; }
+      .wm-text { font-size: 18px; font-weight: 700; color: #e6edf3; }
+    </style>
+  </head>
+  <body>
+    <div id="root"
+         data-composition-id="main"
+         data-start="0" data-duration="15"
+         data-width="1920" data-height="1080">
+
+      <!-- Background + grid + accent + watermark (full duration, single track) -->
+      <div id="bg-layer" class="clip" data-start="0" data-duration="15" data-track-index="0">
+        <div class="bg-base"></div>
+        <div class="bg-grid"></div>
+        <div class="accent-bar"></div>
+        <div class="watermark">
+          <div class="wm-icon"><span class="wm-bolt">&#9889;</span></div>
+          <span class="wm-text"><span style="color:#58a6ff;">Jolt</span>API</span>
+        </div>
+      </div>
+
+      <!-- ===== SCENE 1: Logo + Title + Byline (0–4.5s) ===== -->
+      <div id="s1" class="clip" data-start="0" data-duration="4.5" data-track-index="1"
+           style="position:absolute; top:0; left:0; width:1920px; height:1080px; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+        <div id="s1-inner" style="text-align:center;">
+          <div style="display:flex; align-items:center; justify-content:center; gap:28px; margin-bottom:18px;">
+            <div class="logo-icon"><span class="bolt">&#9889;</span></div>
+            <span class="title-xl"><span class="text-blue">Jolt</span>API</span>
+          </div>
+          <p style="font-size:26px;color:#7d8590;margin-bottom:22px;">REST API Client for VS Code</p>
+          <p class="byline">by <span class="byline-name">S0nder</span> &mdash; github.com/moiseshernandez26</p>
+        </div>
+      </div>
+
+      <!-- ===== SCENE 2: Features (4.5–9s) ===== -->
+      <div id="s2" class="clip" data-start="4.5" data-duration="4.5" data-track-index="2"
+           style="position:absolute; top:0; left:0; width:1920px; height:1080px; display:flex; align-items:center; justify-content:center;">
+        <div id="s2-inner" class="feature-row">
+          <div class="feat-card">
+            <div class="feat-icon a">&#9889;</div>
+            <div class="feat-title">Variables</div>
+            <div class="feat-desc">Use {{base_url}} anywhere — URLs, headers, body. Interpolated at send time with unresolved detection.</div>
+          </div>
+          <div class="feat-card">
+            <div class="feat-icon b">&#128451;</div>
+            <div class="feat-title">Collections</div>
+            <div class="feat-desc">Organize requests as workspace JSON. Import from Postman &amp; Insomnia. Auto-save to Default.</div>
+          </div>
+          <div class="feat-card">
+            <div class="feat-icon c">&#128196;</div>
+            <div class="feat-title">Multi-Tab</div>
+            <div class="feat-desc">Up to 10 request tabs with independent state. Ctrl+Enter to send. Unsaved-change warnings.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== SCENE 3: Code demo (9–13.2s) ===== -->
+      <div id="s3" class="clip" data-start="9" data-duration="4.2" data-track-index="3"
+           style="position:absolute; top:0; left:0; width:1920px; height:1080px; display:flex; align-items:center; justify-content:center;">
+        <div id="s3-inner" style="width:1100px;">
+          <div class="code-win">
+            <div class="code-bar">
+              <span class="code-dot r"></span><span class="code-dot y"></span><span class="code-dot g"></span>
+              <span class="code-bar-label">Request — JoltAPI</span>
+            </div>
+            <div class="code-body">
+              <div class="code-row"><span class="c-method">GET</span>  <span class="c-url">{{base_url}}/api/users</span></div>
+              <div class="code-row"><span class="c-hint">// Headers</span></div>
+              <div class="code-row"><span class="c-label">Authorization</span>  <span class="c-val">Bearer {{token}}</span></div>
+              <div class="code-row"><span class="c-label">Accept</span>          <span class="c-val">application/json</span></div>
+              <div class="code-row" style="margin-top:14px;"><span class="c-hint">// Response</span></div>
+              <div class="code-row"><span class="c-status">200 OK</span>    <span class="c-meta">66ms</span>    <span class="c-meta">283 B</span></div>
+              <div class="code-row"><span class="c-val">[{"id":1,"name":"Alice"}, …]</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== SCENE 4: CTA (13–15s) ===== -->
+      <div id="s4" class="clip" data-start="13" data-duration="2" data-track-index="4"
+           style="position:absolute; top:0; left:0; width:1920px; height:1080px; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+        <div id="s4-inner" style="text-align:center;">
+          <p class="cta-main">Stay in the editor. Ship faster.</p>
+          <p class="cta-url">github.com/anomalyco/joltapi</p>
+          <p style="font-size:16px;color:#484f58;margin-top:18px;">v0.1.0 &middot; MIT License &middot; VS Code ^1.82.0</p>
+        </div>
+      </div>
+
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      var tl = gsap.timeline({ paused: true });
+
+      // === SCENE 1: Logo + Title (0 – 4.5s) ===
+      tl.from("#s1-inner",   { opacity:0, y:50, duration:0.7 }, 0.3);
+      tl.from(".logo-icon",  { scale:0.5, opacity:0, duration:0.7, ease:"back.out(1.7)" }, 0.3);
+      tl.from(".title-xl",   { opacity:0, x:-25, duration:0.5 }, 0.6);
+      tl.from("#s1 p",       { opacity:0, y:12, duration:0.4, stagger:0.15 }, 0.9);
+      tl.to("#s1",           { opacity:0, y:-30, duration:0.45 }, 4.1);
+      tl.set("#s1",          { opacity:0 }, 4.50);
+
+      // === SCENE 2: Features (4.5 – 9s) ===
+      tl.from("#s2-inner",   { opacity:0, y:60, duration:0.55 }, 4.5);
+      tl.from(".feat-card:nth-child(1)", { opacity:0, y:30, duration:0.35 }, 4.65);
+      tl.from(".feat-card:nth-child(2)", { opacity:0, y:30, duration:0.35 }, 4.9);
+      tl.from(".feat-card:nth-child(3)", { opacity:0, y:30, duration:0.35 }, 5.15);
+      tl.to("#s2",           { opacity:0, y:-30, duration:0.4 }, 8.6);
+      tl.set("#s2",          { opacity:0 }, 9.00);
+
+      // === SCENE 3: Code demo (9 – 13.2s) ===
+      tl.from("#s3-inner",   { opacity:0, y:40, scale:0.97, duration:0.55 }, 9.0);
+      tl.from(".code-row:nth-child(1)", { opacity:0, x:-12, duration:0.2 }, 9.3);
+      tl.from(".code-row:nth-child(2)", { opacity:0, duration:0.15 }, 9.5);
+      tl.from(".code-row:nth-child(3)", { opacity:0, x:-12, duration:0.2 }, 9.7);
+      tl.from(".code-row:nth-child(4)", { opacity:0, x:-12, duration:0.2 }, 9.9);
+      tl.from(".code-row:nth-child(5)", { opacity:0, duration:0.15 }, 10.3);
+      tl.from(".code-row:nth-child(6)", { opacity:0, x:-12, duration:0.25 }, 10.5);
+      tl.from(".code-row:nth-child(7)", { opacity:0, x:-12, duration:0.2 }, 10.8);
+      tl.to("#s3",           { opacity:0, y:-30, duration:0.4 }, 12.8);
+
+      // === SCENE 4: CTA (13 – 15s) ===
+      tl.from("#s4-inner",   { opacity:0, y:30, duration:0.5 }, 13.1);
+      tl.from(".cta-main",   { opacity:0, scale:0.92, duration:0.4 }, 13.2);
+      tl.from(".cta-url",    { opacity:0, duration:0.4 }, 13.5);
+
+      // === Accent bar shimmer ===
+      tl.to(".accent-bar",   { backgroundPosition:"200% 0", duration:15, ease:"none" }, 0);
+
+      // === Background breathe ===
+      tl.from(".bg-base",    { opacity:0.5, duration:2 }, 0);
+      tl.to(".bg-base",      { opacity:1, duration:2 }, 2);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

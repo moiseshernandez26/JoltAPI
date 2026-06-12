@@ -21,10 +21,11 @@ export async function handleSendRequest(
     const enabledVars = payload.variables.variables.filter((v) => v.enabled && v.key);
     if (enabledVars.length > 0) {
       resolved.url = interpolateTemplate(resolved.url, enabledVars);
+      const newHeaders: Record<string, string> = {};
       for (const [key, value] of Object.entries(resolved.headers)) {
-        resolved.headers[interpolateTemplate(key, enabledVars)] =
-          interpolateTemplate(value, enabledVars);
+        newHeaders[interpolateTemplate(key, enabledVars)] = interpolateTemplate(value, enabledVars);
       }
+      resolved.headers = newHeaders;
       if (resolved.body) {
         resolved.body = interpolateTemplate(resolved.body, enabledVars);
       }
@@ -66,7 +67,7 @@ export async function handleSendRequest(
       payload: { requestId: payload.request.id, response },
     });
 
-    autoSaveToDefaultCollection(payload.request, postMessage, onChanged).catch((err) => {
+    autoSaveToDefaultCollection(payload.request, onChanged).catch((err) => {
       console.error('[JoltAPI] autoSave failed:', err);
     });
   } catch (err: unknown) {
@@ -77,7 +78,7 @@ export async function handleSendRequest(
   }
 }
 
-async function autoSaveToDefaultCollection(request: IHttpRequest, postMessage: PostFn, onChanged?: () => void): Promise<void> {
+async function autoSaveToDefaultCollection(request: IHttpRequest, onChanged?: () => void): Promise<void> {
   const collections = await loadCollections();
   const defaultCollection = collections.find((c) => c.name === 'Default');
   if (!defaultCollection) {return;}
@@ -103,8 +104,6 @@ async function autoSaveToDefaultCollection(request: IHttpRequest, postMessage: P
   defaultCollection.updatedAt = now;
   await saveCollection(defaultCollection);
 
-  const updated = await loadCollections();
-  postMessage({ command: 'collectionsLoaded', payload: { collections: updated } });
   if (onChanged) { onChanged(); }
 }
 

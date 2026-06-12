@@ -5,6 +5,7 @@ export interface IRequestTab {
   name: string;
   method: import('../types').HttpMethod;
   url: string;
+  fromCollection: boolean;
 }
 
 interface TabState {
@@ -29,6 +30,7 @@ function createDefaultTab(): IRequestTab {
     name: 'Untitled',
     method: 'GET',
     url: '',
+    fromCollection: false,
   };
 }
 
@@ -49,7 +51,7 @@ export const useTabStore = create<TabState>((set) => ({
   addPrepopulatedTab: (name: string, method: import('../types').HttpMethod, url: string) =>
     set((state) => {
       if (state.tabs.length >= 10) {return state;}
-      const newTab: IRequestTab = { id: generateId(), name, method, url };
+      const newTab: IRequestTab = { id: generateId(), name, method, url, fromCollection: !!url };
       return {
         tabs: [...state.tabs, newTab],
         activeTabIndex: state.tabs.length,

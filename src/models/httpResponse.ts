@@ -32,6 +32,4 @@ export interface IHttpResponse {
   requestMethod: HttpMethod;
   /** Unix timestamp (ms) when the response was received. */
   timestamp: number;
-  /** Error message if the request failed (connection refused, timeout, DNS, etc.). */
-  error?: string;
 }

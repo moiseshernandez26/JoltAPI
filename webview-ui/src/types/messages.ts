@@ -14,7 +14,6 @@ export interface IKeyValuePair {
   key: string;
   value: string;
   enabled: boolean;
-  description?: string;
 }
 
 export interface IRequestBody {
@@ -79,7 +78,6 @@ export interface IHttpResponse {
   requestUrl: string;
   requestMethod: HttpMethod;
   timestamp: number;
-  error?: string;
 }
 
 export interface IVariable {
@@ -96,7 +94,6 @@ export interface IVariableSet {
 export interface ICollectionRequest {
   id: string;
   name: string;
-  description?: string;
   request: IHttpRequest;
   createdAt: number;
   updatedAt: number;
@@ -105,9 +102,7 @@ export interface ICollectionRequest {
 export interface ICollection {
   id: string;
   name: string;
-  description?: string;
   requests: ICollectionRequest[];
-  environmentId?: string;
   createdAt: number;
   updatedAt: number;
 }

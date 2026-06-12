@@ -5,9 +5,11 @@ import type { IHttpRequest } from '../types';
 
 export const HistoryPanel: React.FC = () => {
   const history = useSidebarStore((s) => s.history);
+  const setActiveRequest = useSidebarStore((s) => s.setActiveRequest);
   const sendMessage = useSendMessage();
 
   const handleReplay = (request: IHttpRequest): void => {
+    setActiveRequest(null);
     sendMessage({ command: 'openInPanel', payload: { request } });
   };
 

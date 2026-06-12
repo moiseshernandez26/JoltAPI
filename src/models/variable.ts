@@ -1,6 +1,3 @@
-import type { HttpMethod } from './httpRequest';
-import type { IHttpRequest } from './httpRequest';
-
 /**
  * A single named variable for {{interpolation}}.
  */

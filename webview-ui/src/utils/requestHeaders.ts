@@ -1,4 +1,4 @@
-import type { IHttpRequest, IVariable, IKeyValuePair, IHttpResponseHeader } from '../types';
+import type { IHttpRequest, IVariable, IHttpResponseHeader } from '../types';
 
 export const HEADER_SUGGESTIONS = [
   { label: 'Accept', value: '*/*' },

@@ -3,6 +3,7 @@
 node_modules/
 src/**
 webview-ui/**
+!webview-ui/dist/**
 tests/**
 .gitignore
 tsconfig.json

@@ -2,6 +2,11 @@
 
 All notable changes to JoltAPI are documented in this file.
 
+## [0.3.2] — 2026-06-11
+
+### Fixed
+- **Critical: Blank panels after marketplace install** — `.vscodeignore` was excluding the built `webview-ui/dist/` folder, so no webview assets shipped in the VSIX. Both the sidebar and main panel rendered empty. Fixed with a negation pattern to preserve `dist/` while still excluding source.
+
 ## [0.3.1] — 2026-06-11
 
 ### Added

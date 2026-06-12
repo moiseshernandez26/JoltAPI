@@ -2,7 +2,7 @@
   "name": "joltapi",
   "displayName": "JoltAPI",
   "description": "A UI-driven REST API client for VS Code — build, send, and inspect HTTP requests without leaving the editor.",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "publisher": "S0nder",
   "license": "MIT",
   "icon": "JoltIcon.png",

@@ -185,7 +185,9 @@ Happens at **send time** in `handlers/sendRequestHandler.ts`. The `interpolateTe
 
 ## VSIX Packaging
 
-`.vscodeignore` includes `out/` for packaging. The compiled JS is needed in the VSIX.
+`.vscodeignore` includes `out/` for packaging (compiled JS is needed in the VSIX). Also excluded: `src/`, `webview-ui/`, `tests/`, `node_modules/`, `docs/`, `.vscode/`, `.vscode-test/`, `tsconfig.json`, `tsconfig.src.json`, `.gitignore`.
+
+Files that ship in the VSIX (visible on marketplace): `README.md`, `CHANGELOG.md`, `CONTRIBUTING.md`, `JoltIcon.png`, `icon_activity.svg`, `package.json`, `LICENSE`, `media/` (demo GIF).
 
 ## Adding a New Command/Message
 

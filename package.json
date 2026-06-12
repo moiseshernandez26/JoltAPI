@@ -139,7 +139,8 @@
     }
   },
   "scripts": {
-    "vscode:prepublish": "npm run build",
+    "vscode:prepublish": "npm run clean && npm run build",
+    "clean": "node -e \"require('fs').rmSync('out',{recursive:true,force:true})\"",
     "build": "npm run compile && npm run build:webview",
     "compile": "tsc -p tsconfig.src.json",
     "watch": "tsc -p tsconfig.src.json -watch",
@@ -147,7 +148,7 @@
     "watch:webview": "cd webview-ui && npm run dev",
     "dev": "npm run compile && npm run build:webview",
     "lint": "tsc --noEmit -p tsconfig.src.json && cd webview-ui && npx tsc --noEmit",
-    "test": "npx tsc -p tsconfig.json && npx mocha --ui tdd out/tests/**/*.test.js"
+    "test": "npx tsc -p tsconfig.json && npx mocha --ui tdd out-test/tests/**/*.test.js"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.6",

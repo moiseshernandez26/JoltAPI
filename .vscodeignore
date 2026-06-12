@@ -11,3 +11,6 @@ docs/**
 .opencode/**
 AGENTS.md
 joltapi-video/**
+out/src/**
+out/tests/**
+out-test/**

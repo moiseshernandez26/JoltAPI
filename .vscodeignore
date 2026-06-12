@@ -7,6 +7,4 @@ tests/**
 .gitignore
 tsconfig.json
 tsconfig.src.json
-CHANGELOG.md
-CONTRIBUTING.md
 docs/**

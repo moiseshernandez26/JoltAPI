@@ -1,4 +1,8 @@
 <p align="center">
+  <img src="media/demo.gif" alt="JoltAPI Demo" width="800" />
+</p>
+
+<p align="center">
   <img src="JoltIcon.png" alt="JoltAPI" width="96" height="96" />
 </p>
 
@@ -97,7 +101,7 @@ npm test                          # Run test suite
 
 ## Promo Video
 
-A 15-second showcase video is built with [HyperFrames](https://github.com/heygen-com/hyperframes) (HTML-to-MP4, Apache 2.0). The composition lives in `joltapi-video/index.html`.
+The demo above was built with [HyperFrames](https://github.com/heygen-com/hyperframes) (HTML-to-MP4, Apache 2.0). The composition lives in `joltapi-video/index.html`.
 
 ```bash
 cd joltapi-video

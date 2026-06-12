@@ -17,6 +17,7 @@
   <img src="https://img.shields.io/badge/vscode-%5E1.82.0-blue?logo=visual-studio-code" alt="VS Code" />
   <img src="https://img.shields.io/badge/license-MIT-green" alt="License" />
   <img src="https://img.shields.io/badge/version-0.3.1-orange" alt="Version" />
+  <a href="https://marketplace.visualstudio.com/items?itemName=S0nder.auditext"><img src="https://img.shields.io/badge/vscode-install-blue?logo=visual-studio-code" alt="VS Code Marketplace" /></a>
 </p>
 
 ---

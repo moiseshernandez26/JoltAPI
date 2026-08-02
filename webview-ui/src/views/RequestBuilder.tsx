@@ -7,6 +7,7 @@ import {
   KeyValueEditor,
   BodyEditor,
   AuthEditor,
+  ProxyEditor,
   UrlBar,
 } from '../components';
 import { HEADER_SUGGESTIONS, HEADER_VALUE_SUGGESTIONS } from '../utils/requestHeaders';
@@ -92,6 +93,12 @@ export const RequestBuilder: React.FC<RequestBuilderProps> = ({
           <AuthEditor
             auth={currentRequest.auth}
             onChange={(a) => useRequestStore.getState().setAuth(a)}
+          />
+        )}
+        {activeTab === 'proxy' && (
+          <ProxyEditor
+            proxy={currentRequest.proxy}
+            onChange={(p) => useRequestStore.getState().setProxy(p)}
           />
         )}
       </div>

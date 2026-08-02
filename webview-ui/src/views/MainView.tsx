@@ -5,6 +5,7 @@ import {
   useCollectionStore,
   useVariableStore,
   useTabStore,
+  createDefaultRequest,
 } from '../store';
 import { useMessageListener, useRequestState } from '../hooks';
 import { postMessage } from '../api';
@@ -54,7 +55,7 @@ export const MainView: React.FC = () => {
           if (tabStore.activeTabIndex === tabStore.tabs.indexOf(tab)) {
             requestStore.setName(collectionName);
           }
-          return { ...tab, name: collectionName };
+          return { ...tab, name: collectionName, request: { ...tab.request, name: collectionName } };
         }
         return tab;
       })
@@ -66,7 +67,10 @@ export const MainView: React.FC = () => {
       });
 
     if (updatedTabs.length === 0) {
-      useTabStore.setState({ tabs: [{ id: 'default', name: 'Untitled', method: 'GET', url: '', fromCollection: false }], activeTabIndex: 0 });
+      useTabStore.setState({
+        tabs: [{ id: 'default', name: 'Untitled', method: 'GET', url: '', fromCollection: false, request: createDefaultRequest() }],
+        activeTabIndex: 0,
+      });
       requestStore.resetRequest();
       return;
     }
@@ -79,18 +83,7 @@ export const MainView: React.FC = () => {
     const removedTabs = tabStore.tabs.length - updatedTabs.length;
     if (removedTabs > 0 && updatedTabs.length > 0) {
       const newTab = updatedTabs[newActiveIndex];
-      requestStore.loadRequest({
-        id: newTab.id,
-        name: newTab.name,
-        method: newTab.method,
-        url: newTab.url,
-        headers: [],
-        queryParams: [],
-        body: { type: 'none' },
-        auth: { type: 'none' },
-        proxy: { enabled: false, host: '', port: 0 },
-        settings: { timeout: 30000, sslVerify: true, followRedirects: true, maxRedirects: 5 },
-      });
+      requestStore.loadRequest(newTab.request);
     }
 
     useTabStore.setState({ tabs: updatedTabs, activeTabIndex: newActiveIndex });
@@ -130,6 +123,7 @@ export const MainView: React.FC = () => {
               method: req.method,
               url: req.url,
               fromCollection,
+              request: req,
             });
             break;
           }
@@ -151,9 +145,10 @@ export const MainView: React.FC = () => {
             method: req.method,
             url: req.url,
             fromCollection,
+            request: req,
           });
         } else {
-          tabStore.addPrepopulatedTab(tabName, req.method, req.url);
+          tabStore.addPrepopulatedTab(req, fromCollection);
           requestState.loadRequest(req);
         }
         break;
@@ -173,6 +168,10 @@ export const MainView: React.FC = () => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
         e.preventDefault();
         sendRequest();
+      } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+        // preventDefault stops the browser's own "Save Page As" behavior inside the webview.
+        e.preventDefault();
+        setShowSaveDialog(true);
       }
     };
     document.addEventListener('keydown', handleKeyDown);

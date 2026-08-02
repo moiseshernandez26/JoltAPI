@@ -5,9 +5,11 @@ import { JoltApiPanel } from './panels';
 import { setBroadcastRefresh } from './panels/messageHandlers';
 import { loadCollections, loadVariables } from './services/storageService';
 import { loadHistory } from './panels/handlers/historyHandler';
+import { getOutputChannel } from './utils/outputChannel';
 import type { IHttpRequest } from './models';
 
 export function activate(context: vscode.ExtensionContext): void {
+  context.subscriptions.push(getOutputChannel());
   registerAllCommands(context);
 
   const sidebarProvider = new SidebarProvider(context.extensionUri, context);

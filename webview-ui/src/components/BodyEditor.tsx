@@ -48,6 +48,16 @@ export const BodyEditor: React.FC<BodyEditorProps> = ({ body, onChange }) => {
     ? getJsonError(body.jsonBody)
     : null;
 
+  const handleFormatJson = (): void => {
+    if (!body.jsonBody) {return;}
+    try {
+      const formatted = JSON.stringify(JSON.parse(body.jsonBody), null, 4);
+      onChange({ ...body, jsonBody: formatted });
+    } catch {
+      // Invalid JSON — the Format button is disabled in this state, but guard anyway.
+    }
+  };
+
   return (
     <div style={styles.container}>
       <div style={styles.typeBar}>
@@ -72,6 +82,19 @@ export const BodyEditor: React.FC<BodyEditorProps> = ({ body, onChange }) => {
 
         {body.type === 'json' && (
           <div>
+            <div style={styles.jsonToolbar}>
+              <button
+                onClick={handleFormatJson}
+                disabled={!body.jsonBody || !!jsonError}
+                style={{
+                  ...styles.formatBtn,
+                  ...((!body.jsonBody || !!jsonError) ? styles.formatBtnDisabled : {}),
+                }}
+                title={jsonError ? 'Fix the JSON error before formatting' : 'Pretty-print with 4-space indent'}
+              >
+                Format
+              </button>
+            </div>
             <HighlightedTextarea
               value={body.jsonBody ?? ''}
               onChange={(value) => onChange({ ...body, jsonBody: value })}
@@ -185,6 +208,23 @@ const styles: Record<string, React.CSSProperties> = {
     color: 'var(--vscode-descriptionForeground)',
     fontSize: '12px',
     fontStyle: 'italic',
+  },
+  jsonToolbar: {
+    display: 'flex',
+    justifyContent: 'flex-end',
+  },
+  formatBtn: {
+    padding: '3px 10px',
+    backgroundColor: 'var(--vscode-button-secondaryBackground)',
+    color: 'var(--vscode-button-secondaryForeground)',
+    border: 'none',
+    borderRadius: '2px',
+    cursor: 'pointer',
+    fontSize: '11px',
+  },
+  formatBtnDisabled: {
+    opacity: 0.5,
+    cursor: 'not-allowed',
   },
   select: {
     padding: '4px 8px',

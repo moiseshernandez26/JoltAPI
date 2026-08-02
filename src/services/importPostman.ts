@@ -14,6 +14,7 @@ interface PostmanItem {
     body?: {
       mode?: string;
       raw?: string;
+      urlencoded?: { key: string; value: string; disabled?: boolean }[];
       formdata?: { key: string; value: string; disabled?: boolean; type: string }[];
     };
   };
@@ -68,11 +69,23 @@ function convertPostmanItems(items: PostmanItem[], now: number): ICollectionRequ
 
       let body: IHttpRequest['body'] = { type: 'none' };
       if (req.body) {
-        if (req.body.mode === 'raw' && req.body.raw) {
-          body = { type: 'raw', rawBody: req.body.raw };
-        } else if (req.body.mode === 'urlencoded' && req.body.formdata) {
+        if (req.body.mode === 'urlencoded' && req.body.urlencoded) {
           body = {
             type: 'form-data',
+            formEncoding: 'urlencoded',
+            formData: req.body.urlencoded
+              .filter((f) => f.key)
+              .map((f, i) => ({
+                id: `pm-ue-${i}-${generateId()}`,
+                key: f.key,
+                value: f.value,
+                enabled: !f.disabled,
+              })),
+          };
+        } else if (req.body.mode === 'formdata' && req.body.formdata) {
+          body = {
+            type: 'form-data',
+            formEncoding: 'multipart',
             formData: req.body.formdata
               .filter((f) => f.key)
               .map((f, i) => ({
@@ -82,8 +95,8 @@ function convertPostmanItems(items: PostmanItem[], now: number): ICollectionRequ
                 enabled: !f.disabled,
               })),
           };
-        } else if (req.body.mode === 'raw' && !req.body.raw) {
-          body = { type: 'none' };
+        } else if (req.body.mode === 'raw' && req.body.raw) {
+          body = { type: 'raw', rawBody: req.body.raw };
         } else if (req.body.raw) {
           body = { type: 'json', jsonBody: req.body.raw };
         }

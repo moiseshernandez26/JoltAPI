@@ -5,8 +5,13 @@ export { shellEscape, buildCurlCommand } from './curlUtils';
 
 /**
  * Creates an undici ProxyAgent for the given proxy configuration.
+ *
+ * `undici` is a real `dependencies` entry (see package.json) and must ship in the VSIX —
+ * check `.vscodeignore` if this starts silently returning `undefined` again. Exported for
+ * unit testing: a passing test here is what would have caught the bug where `undici` was
+ * never installed as a dependency, so this always failed silently in production.
  */
-function createProxyAgent(proxy: IProxyConfig): unknown {
+export function createProxyAgent(proxy: IProxyConfig): unknown {
   try {
     const { ProxyAgent } = require('undici') as { ProxyAgent: new (opts: Record<string, unknown>) => unknown };
     const auth = proxy.auth?.username
@@ -16,15 +21,17 @@ function createProxyAgent(proxy: IProxyConfig): unknown {
       uri: `http://${proxy.host}:${proxy.port}`,
       ...(auth ? { token: `Basic ${Buffer.from(auth).toString('base64')}` } : {}),
     });
-  } catch {
+  } catch (err) {
+    console.error('[JoltAPI] Failed to create proxy agent — proxy will NOT be applied:', err);
     return undefined;
   }
 }
 
 /**
- * Creates a custom undici Agent that disables SSL verification.
+ * Creates a custom undici Agent that disables SSL verification. See `createProxyAgent` for
+ * why this is exported and why a failure here is logged rather than swallowed silently.
  */
-function createInsecureAgent(): unknown {
+export function createInsecureAgent(): unknown {
   try {
     const { Agent } = require('undici') as { Agent: new (opts: Record<string, unknown>) => unknown };
     return new Agent({
@@ -32,7 +39,8 @@ function createInsecureAgent(): unknown {
         rejectUnauthorized: false,
       },
     });
-  } catch {
+  } catch (err) {
+    console.error('[JoltAPI] Failed to create insecure SSL agent — sslVerify:false will NOT be applied:', err);
     return undefined;
   }
 }

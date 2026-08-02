@@ -16,6 +16,34 @@
   "categories": [
     "Other"
   ],
+  "keywords": [
+    "rest",
+    "api",
+    "http",
+    "client",
+    "request",
+    "postman",
+    "insomnia",
+    "curl",
+    "api testing",
+    "webhook"
+  ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": "limited",
+      "description": "Collections and variables are read from and written to the workspace as plain JSON and are never executed. Sending a request always requires an explicit user action. In untrusted workspaces, workspace-level overrides of the proxy and default-header settings are ignored, so an untrusted repository's .vscode/settings.json cannot silently redirect your requests through another proxy or inject extra headers.",
+      "restrictedConfigurations": [
+        "joltapi.proxy.host",
+        "joltapi.proxy.port",
+        "joltapi.proxy.username",
+        "joltapi.defaultHeaders"
+      ]
+    },
+    "virtualWorkspaces": {
+      "supported": false,
+      "description": "JoltAPI reads and writes collections/variables with Node's fs module directly rather than vscode.workspace.fs, so it requires a real (local or remote) file system."
+    }
+  },
   "activationEvents": [],
   "main": "./out/extension.js",
   "contributes": {
@@ -60,7 +88,6 @@
           "when": "editorFocus"
         }
       ]
-
     },
     "configuration": {
       "title": "JoltAPI",
@@ -91,8 +118,12 @@
           "items": {
             "type": "object",
             "properties": {
-              "key": { "type": "string" },
-              "value": { "type": "string" }
+              "key": {
+                "type": "string"
+              },
+              "value": {
+                "type": "string"
+              }
             }
           },
           "description": "Default headers added to every request."
@@ -148,7 +179,9 @@
     "watch:webview": "cd webview-ui && npm run dev",
     "dev": "npm run compile && npm run build:webview",
     "lint": "tsc --noEmit -p tsconfig.src.json && cd webview-ui && npx tsc --noEmit",
-    "test": "npx tsc -p tsconfig.json && npx mocha --ui tdd out-test/tests/**/*.test.js"
+    "test:host": "npx tsc -p tsconfig.json && npx mocha --ui tdd out-test/tests/**/*.test.js",
+    "test:webview": "cd webview-ui && npm test",
+    "test": "npm run test:host && npm run test:webview"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.6",
@@ -157,5 +190,8 @@
     "@vscode/test-electron": "^2.3.8",
     "mocha": "^10.2.0",
     "typescript": "^5.3.0"
+  },
+  "dependencies": {
+    "undici": "^8.9.0"
   }
 }

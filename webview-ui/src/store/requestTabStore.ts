@@ -1,4 +1,6 @@
 import { create } from 'zustand';
+import { createDefaultRequest } from './requestStore';
+import type { IHttpRequest } from '../types';
 
 export interface IRequestTab {
   id: string;
@@ -6,13 +8,15 @@ export interface IRequestTab {
   method: import('../types').HttpMethod;
   url: string;
   fromCollection: boolean;
+  /** Full request state for this tab (headers, body, auth, etc.), preserved across tab switches. */
+  request: IHttpRequest;
 }
 
 interface TabState {
   tabs: IRequestTab[];
   activeTabIndex: number;
   addTab: () => void;
-  addPrepopulatedTab: (name: string, method: import('../types').HttpMethod, url: string) => void;
+  addPrepopulatedTab: (request: IHttpRequest, fromCollection: boolean) => void;
   removeTab: (index: number) => void;
   setActiveTab: (index: number) => void;
   updateTab: (index: number, tab: Partial<IRequestTab>) => void;
@@ -31,6 +35,7 @@ function createDefaultTab(): IRequestTab {
     method: 'GET',
     url: '',
     fromCollection: false,
+    request: createDefaultRequest(),
   };
 }
 
@@ -48,10 +53,17 @@ export const useTabStore = create<TabState>((set) => ({
       };
     }),
 
-  addPrepopulatedTab: (name: string, method: import('../types').HttpMethod, url: string) =>
+  addPrepopulatedTab: (request: IHttpRequest, fromCollection: boolean) =>
     set((state) => {
       if (state.tabs.length >= 10) {return state;}
-      const newTab: IRequestTab = { id: generateId(), name, method, url, fromCollection: !!url };
+      const newTab: IRequestTab = {
+        id: generateId(),
+        name: request.name || request.url || 'Untitled',
+        method: request.method,
+        url: request.url,
+        fromCollection,
+        request,
+      };
       return {
         tabs: [...state.tabs, newTab],
         activeTabIndex: state.tabs.length,

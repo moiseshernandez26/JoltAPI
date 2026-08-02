@@ -11,7 +11,7 @@ function generateId(): string {
 /**
  * Creates a default empty HTTP request.
  */
-function createDefaultRequest(): IHttpRequest {
+export function createDefaultRequest(): IHttpRequest {
   return {
     id: generateId(),
     name: 'Untitled Request',
@@ -38,7 +38,7 @@ function createEmptyPair(): IKeyValuePair {
 interface RequestState {
   currentRequest: IHttpRequest;
   isDirty: boolean;
-  activeTab: 'headers' | 'body' | 'params' | 'auth';
+  activeTab: 'headers' | 'body' | 'params' | 'auth' | 'proxy';
   isSending: boolean;
 
   setMethod: (method: IHttpRequest['method']) => void;
@@ -47,6 +47,7 @@ interface RequestState {
   setQueryParams: (params: IKeyValuePair[]) => void;
   setBody: (body: IHttpRequest['body']) => void;
   setAuth: (auth: IHttpRequest['auth']) => void;
+  setProxy: (proxy: IHttpRequest['proxy']) => void;
   setActiveTab: (tab: RequestState['activeTab']) => void;
   setIsSending: (sending: boolean) => void;
   loadRequest: (request: IHttpRequest) => void;
@@ -96,6 +97,12 @@ export const useRequestStore = create<RequestState>((set) => ({
   setAuth: (auth) =>
     set((state) => ({
       currentRequest: { ...state.currentRequest, auth },
+      isDirty: true,
+    })),
+
+  setProxy: (proxy) =>
+    set((state) => ({
+      currentRequest: { ...state.currentRequest, proxy },
       isDirty: true,
     })),
 

@@ -1,8 +1,8 @@
 import React from 'react';
 
 interface RequestTabsProps {
-  activeTab: 'headers' | 'body' | 'params' | 'auth';
-  onTabChange: (tab: 'headers' | 'body' | 'params' | 'auth') => void;
+  activeTab: 'headers' | 'body' | 'params' | 'auth' | 'proxy';
+  onTabChange: (tab: 'headers' | 'body' | 'params' | 'auth' | 'proxy') => void;
 }
 
 const TABS: { id: RequestTabsProps['activeTab']; label: string }[] = [
@@ -10,6 +10,7 @@ const TABS: { id: RequestTabsProps['activeTab']; label: string }[] = [
   { id: 'headers', label: 'Headers' },
   { id: 'body', label: 'Body' },
   { id: 'auth', label: 'Auth' },
+  { id: 'proxy', label: 'Proxy' },
 ];
 
 /**

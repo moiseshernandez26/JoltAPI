@@ -1,6 +1,11 @@
 .vscode/**
 .vscode-test/**
-node_modules/
+node_modules/**
+!node_modules/undici/package.json
+!node_modules/undici/LICENSE
+!node_modules/undici/index.js
+!node_modules/undici/index-fetch.js
+!node_modules/undici/lib/**
 src/**
 webview-ui/**
 !webview-ui/dist/**
@@ -11,6 +16,7 @@ tsconfig.src.json
 docs/**
 .opencode/**
 AGENTS.md
+CLAUDE.md
 joltapi-video/**
 out/src/**
 out/tests/**

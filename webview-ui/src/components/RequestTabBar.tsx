@@ -17,7 +17,6 @@ export const RequestTabBar: React.FC = () => {
   const closeAllTabs = useTabStore((s) => s.closeAllTabs);
   const closeOtherTabs = useTabStore((s) => s.closeOtherTabs);
   const currentRequest = useRequestStore((s) => s.currentRequest);
-  const isDirty = useRequestStore((s) => s.isDirty);
   const [tabMenu, setTabMenu] = useState<TabMenu | null>(null);
 
   useEffect(() => {
@@ -28,25 +27,10 @@ export const RequestTabBar: React.FC = () => {
 
   const handleTabClick = (index: number): void => {
     if (index === activeTabIndex) {return;}
-    if (isDirty) {
-      const confirmed = confirm('You have unsaved changes. Discard them and switch tabs?');
-      if (!confirmed) {return;}
-    }
     setActiveTab(index);
     const tab = tabs[index];
     if (tab) {
-      useRequestStore.getState().loadRequest({
-        id: tab.id,
-        name: tab.name,
-        method: tab.method,
-        url: tab.url,
-        headers: [],
-        queryParams: [],
-        body: { type: 'none' },
-        auth: { type: 'none' },
-        proxy: { enabled: false, host: '', port: 0 },
-        settings: { timeout: 30000, sslVerify: true, followRedirects: true, maxRedirects: 5 },
-      });
+      useRequestStore.getState().loadRequest(tab.request);
     }
   };
 
@@ -59,18 +43,7 @@ export const RequestTabBar: React.FC = () => {
       const newState = useTabStore.getState();
       const tab = newState.tabs[newState.activeTabIndex];
       if (tab) {
-        useRequestStore.getState().loadRequest({
-          id: tab.id,
-          name: tab.name,
-          method: tab.method,
-          url: tab.url,
-          headers: [],
-          queryParams: [],
-          body: { type: 'none' },
-          auth: { type: 'none' },
-          proxy: { enabled: false, host: '', port: 0 },
-          settings: { timeout: 30000, sslVerify: true, followRedirects: true, maxRedirects: 5 },
-        });
+        useRequestStore.getState().loadRequest(tab.request);
       }
     }
   };
@@ -93,13 +66,7 @@ export const RequestTabBar: React.FC = () => {
         setActiveTab(tabMenu.index);
         const tab = tabs[tabMenu.index];
         if (tab) {
-          useRequestStore.getState().loadRequest({
-            id: tab.id, name: tab.name, method: tab.method, url: tab.url,
-            headers: [], queryParams: [], body: { type: 'none' },
-            auth: { type: 'none' },
-            proxy: { enabled: false, host: '', port: 0 },
-            settings: { timeout: 30000, sslVerify: true, followRedirects: true, maxRedirects: 5 },
-          });
+          useRequestStore.getState().loadRequest(tab.request);
         }
       }
       closeOtherTabs(tabMenu.index);
@@ -116,9 +83,10 @@ export const RequestTabBar: React.FC = () => {
         name: displayName,
         method: displayMethod,
         url: currentRequest.url,
+        request: currentRequest,
       });
     }
-  }, [displayName, displayMethod, currentRequest.url]);
+  }, [currentRequest]);
 
   const handleAddTab = (): void => {
     if (tabs.length >= 10) {return;}
@@ -172,9 +140,16 @@ export const RequestTabBar: React.FC = () => {
           background: rgba(255,255,255,0.1);
           color: var(--vscode-foreground);
         }
+        .tabs-container {
+          scrollbar-width: none;
+          -ms-overflow-style: none;
+        }
+        .tabs-container::-webkit-scrollbar {
+          display: none;
+        }
       `}</style>
       <div style={styles.tabBar}>
-        <div style={styles.tabsContainer}>
+        <div className="tabs-container" style={styles.tabsContainer}>
           {tabs.map((tab, index) => {
             const isActive = index === activeTabIndex;
             return (

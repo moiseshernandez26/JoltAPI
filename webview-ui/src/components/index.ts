@@ -3,6 +3,7 @@ export { AutocompleteInput } from './AutocompleteInput';
 export { RequestTabs } from './RequestTabs';
 export { BodyEditor } from './BodyEditor';
 export { AuthEditor } from './AuthEditor';
+export { ProxyEditor } from './ProxyEditor';
 export { ResponseHeaders } from './ResponseHeaders';
 export { ResponseBody } from './ResponseBody';
 export { UrlBar } from './UrlBar';

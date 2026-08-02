@@ -2,6 +2,15 @@
 
 All notable changes to JoltAPI are documented in this file.
 
+## [0.4.0] — 2026-08-01
+
+### Added
+- **Per-request Proxy Configuration** — New "Proxy" tab on each request lets you set a proxy host/port/username/password that overrides the global `joltapi.proxy.*` settings for that request only. Supports variable interpolation, same as URL/headers/auth.
+- **`resolveRequest.ts`** — Extracted shared request-resolution logic (URL, headers, auth, body, proxy) used by both "Send Request" and "Copy as cURL" so the two stay in sync.
+
+### Changed
+- "Copy as cURL" now reuses `resolveHttpRequest` for URL/header/auth/body resolution instead of duplicating the logic, so the copied command matches what's actually sent (multipart form-data remains a special case).
+
 ## [0.3.2] — 2026-06-11
 
 ### Fixed

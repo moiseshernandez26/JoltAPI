@@ -172,6 +172,7 @@
   "scripts": {
     "vscode:prepublish": "npm run clean && npm run build",
     "clean": "node -e \"require('fs').rmSync('out',{recursive:true,force:true})\"",
+    "build:vscodepkg": "vsce package",
     "build": "npm run compile && npm run build:webview",
     "compile": "tsc -p tsconfig.src.json",
     "watch": "tsc -p tsconfig.src.json -watch",

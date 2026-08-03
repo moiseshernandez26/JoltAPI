@@ -1,9 +1,16 @@
 import * as vscode from 'vscode';
-import * as path from 'path';
-import * as fs from 'fs/promises';
 import { randomUUID } from 'crypto';
-import type { ICollection, IVariableSet } from '../models';
+import type { ICollection, IProxyProfileSet, IVariableSet } from '../models';
 import { STORAGE } from '../utils/constants';
+
+/**
+ * All persistence goes through `vscode.workspace.fs` rather than Node's `fs`.
+ *
+ * That is what lets JoltAPI work in a virtual workspace (github.dev, vscode.dev, remote
+ * file-system providers), where there is no local path to hand to `fs` at all — `.fsPath`
+ * on such a URI is meaningless. Never reintroduce `fs`/`path` here: it would silently
+ * re-break virtual workspaces while still appearing to work locally.
+ */
 
 function getWorkspaceRoot(): vscode.Uri {
   const folders = vscode.workspace.workspaceFolders;
@@ -13,27 +20,32 @@ function getWorkspaceRoot(): vscode.Uri {
   return folders[0].uri;
 }
 
-async function ensureDir(dirPath: string): Promise<void> {
-  await fs.mkdir(dirPath, { recursive: true });
+function joltUri(...segments: string[]): vscode.Uri {
+  return vscode.Uri.joinPath(getWorkspaceRoot(), STORAGE.BASE_DIR, ...segments);
 }
 
-async function readJsonFile<T>(filePath: string): Promise<T | null> {
+function isFileNotFound(err: unknown): boolean {
+  return err instanceof vscode.FileSystemError && err.code === 'FileNotFound';
+}
+
+async function readJsonFile<T>(uri: vscode.Uri): Promise<T | null> {
   try {
-    const raw = await fs.readFile(filePath, 'utf-8');
-    return JSON.parse(raw) as T;
+    const bytes = await vscode.workspace.fs.readFile(uri);
+    return JSON.parse(new TextDecoder().decode(bytes)) as T;
   } catch (err: unknown) {
-    if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
+    if (isFileNotFound(err)) {
       return null;
     }
     throw err;
   }
 }
 
-async function writeJsonFile(filePath: string, data: unknown): Promise<void> {
-  const dir = path.dirname(filePath);
-  await ensureDir(dir);
+async function writeJsonFile(uri: vscode.Uri, data: unknown): Promise<void> {
+  // `writeFile` creates missing parent directories for file-system providers that support
+  // it, but not all do — create the folder explicitly so behavior is the same everywhere.
+  await vscode.workspace.fs.createDirectory(vscode.Uri.joinPath(uri, '..'));
   const json = JSON.stringify(data, null, 2);
-  await fs.writeFile(filePath, json, 'utf-8');
+  await vscode.workspace.fs.writeFile(uri, new TextEncoder().encode(json));
 }
 
 // --- Variables ---
@@ -41,33 +53,47 @@ async function writeJsonFile(filePath: string, data: unknown): Promise<void> {
 const VARIABLES_FILE = 'variables.json';
 
 export async function loadVariables(): Promise<IVariableSet> {
-  const root = getWorkspaceRoot();
-  const filePath = path.join(root.fsPath, STORAGE.BASE_DIR, VARIABLES_FILE);
-  const data = await readJsonFile<IVariableSet>(filePath);
+  const data = await readJsonFile<IVariableSet>(joltUri(VARIABLES_FILE));
   return data ?? { variables: [] };
 }
 
 export async function saveVariables(variables: IVariableSet): Promise<void> {
-  const root = getWorkspaceRoot();
-  const filePath = path.join(root.fsPath, STORAGE.BASE_DIR, VARIABLES_FILE);
-  await writeJsonFile(filePath, variables);
+  await writeJsonFile(joltUri(VARIABLES_FILE), variables);
+}
+
+// --- Proxy profiles ---
+
+const PROXIES_FILE = 'proxies.json';
+
+export async function loadProxyProfiles(): Promise<IProxyProfileSet> {
+  const data = await readJsonFile<IProxyProfileSet>(joltUri(PROXIES_FILE));
+  return data ?? { profiles: [] };
+}
+
+export async function saveProxyProfiles(proxies: IProxyProfileSet): Promise<void> {
+  await writeJsonFile(joltUri(PROXIES_FILE), proxies);
 }
 
 // --- Collections ---
 
-export async function loadCollections(): Promise<ICollection[]> {
-  const root = getWorkspaceRoot();
-  const collectionsDir = path.join(root.fsPath, STORAGE.COLLECTIONS_DIR);
-  await ensureDir(collectionsDir);
+const COLLECTIONS_DIR = 'collections';
 
-  const entries = await fs.readdir(collectionsDir, { withFileTypes: true });
-  const jsonFiles = entries.filter((e) => e.isFile() && e.name.endsWith('.json'));
+function collectionUri(name: string): vscode.Uri {
+  return joltUri(COLLECTIONS_DIR, `${sanitizeFileName(name)}.json`);
+}
+
+export async function loadCollections(): Promise<ICollection[]> {
+  const dirUri = joltUri(COLLECTIONS_DIR);
+  await vscode.workspace.fs.createDirectory(dirUri);
+
+  const entries = await vscode.workspace.fs.readDirectory(dirUri);
+  const jsonFiles = entries.filter(
+    ([name, type]) => type === vscode.FileType.File && name.endsWith('.json'),
+  );
 
   const collections: ICollection[] = [];
-  for (const file of jsonFiles) {
-    const collection = await readJsonFile<ICollection>(
-      path.join(collectionsDir, file.name),
-    );
+  for (const [name] of jsonFiles) {
+    const collection = await readJsonFile<ICollection>(vscode.Uri.joinPath(dirUri, name));
     if (collection) {
       collections.push(collection);
     }
@@ -94,29 +120,18 @@ function createDefaultCollection(): ICollection {
 }
 
 export async function saveCollection(collection: ICollection): Promise<void> {
-  const root = getWorkspaceRoot();
-  const filePath = path.join(
-    root.fsPath,
-    STORAGE.COLLECTIONS_DIR,
-    `${sanitizeFileName(collection.name)}.json`,
-  );
-  await writeJsonFile(filePath, collection);
+  await writeJsonFile(collectionUri(collection.name), collection);
 }
 
 export async function deleteCollection(collectionId: string): Promise<void> {
   const collections = await loadCollections();
   const collection = collections.find((c) => c.id === collectionId);
   if (!collection) {return;}
-  const root = getWorkspaceRoot();
-  const filePath = path.join(
-    root.fsPath,
-    STORAGE.COLLECTIONS_DIR,
-    `${sanitizeFileName(collection.name)}.json`,
-  );
+
   try {
-    await fs.unlink(filePath);
+    await vscode.workspace.fs.delete(collectionUri(collection.name));
   } catch (err: unknown) {
-    if ((err as NodeJS.ErrnoException).code !== 'ENOENT') {throw err;}
+    if (!isFileNotFound(err)) {throw err;}
   }
 }
 

@@ -1,7 +1,8 @@
 import type { IResolvedHttpRequest, IHttpResponse, IHttpResponseHeader, IProxyConfig } from '../models';
-import { buildUrl, redactUrl, classifyFetchError } from './httpErrors';
+import { buildUrl, redactUrl, classifyFetchError, HttpError } from './httpErrors';
+import { isRedirectStatus, nextRedirectStep, type IRedirectStep } from './redirects';
 
-export { shellEscape, buildCurlCommand } from './curlUtils';
+export { shellEscape, buildCurlCommand, buildCurlProxyFlags } from './curlUtils';
 
 /**
  * Creates an undici ProxyAgent for the given proxy configuration.
@@ -69,9 +70,17 @@ export async function executeRequest(request: IResolvedHttpRequest): Promise<IHt
 
   if (hasProxy) {
     const agent = createProxyAgent(request.proxy!);
-    if (agent) {
-      (fetchOptions as Record<string, unknown>).dispatcher = agent;
+    if (!agent) {
+      // Never fall through to an unproxied request: the caller asked for this traffic to go
+      // through a proxy, and sending it direct would leak it with only a console warning.
+      clearTimeout(timeoutId);
+      throw new HttpError(
+        `Could not build a proxy agent for ${request.proxy!.host}:${request.proxy!.port}. ` +
+          'The host must be a bare hostname or IP — no scheme, port, or path. The request was NOT sent.',
+        'PROXY_AGENT_FAILED',
+      );
     }
+    (fetchOptions as Record<string, unknown>).dispatcher = agent;
   } else if (!request.sslVerify) {
     const agent = createInsecureAgent();
     if (agent) {
@@ -79,20 +88,49 @@ export async function executeRequest(request: IResolvedHttpRequest): Promise<IHt
     }
   }
 
+  // Redirects are followed here rather than by `fetch` itself: that is the only way to
+  // honor `maxRedirects`, to stop at the first hop when `followRedirects` is off, and to
+  // drop credentials when a redirect crosses origins (see services/redirects.ts).
+  const maxRedirects = request.followRedirects ? Math.max(0, request.maxRedirects ?? 0) : 0;
+  let step: IRedirectStep = {
+    url,
+    method: request.method,
+    headers: { ...request.headers },
+    body: fetchOptions.body as string | undefined,
+  };
+
   let response: Response;
-  try {
-    console.log(`[JoltAPI] Executing ${request.method} ${redactUrl(url)}`);
-    response = await fetch(url, fetchOptions);
-  } catch (err: unknown) {
-    clearTimeout(timeoutId);
-    console.error(`[JoltAPI] HTTP request failed for ${redactUrl(url)}`);
-    throw classifyFetchError(err, request.timeout);
+  let hops = 0;
+  for (;;) {
+    try {
+      console.log(`[JoltAPI] Executing ${step.method} ${redactUrl(step.url)}`);
+      response = await fetch(step.url, {
+        ...fetchOptions,
+        method: step.method,
+        headers: step.headers,
+        body: step.body,
+        redirect: 'manual',
+      });
+    } catch (err: unknown) {
+      clearTimeout(timeoutId);
+      console.error(`[JoltAPI] HTTP request failed for ${redactUrl(step.url)}`);
+      throw classifyFetchError(err, request.timeout);
+    }
+
+    if (!isRedirectStatus(response.status) || hops >= maxRedirects) {break;}
+
+    const next = nextRedirectStep(step, response.status, response.headers.get('location'));
+    if (!next) {break;}
+
+    hops += 1;
+    console.log(`[JoltAPI] Redirect ${response.status} → ${redactUrl(next.url)} (hop ${hops}/${maxRedirects})`);
+    step = next;
   }
   clearTimeout(timeoutId);
 
   const responseTimeMs = Date.now() - startTime;
   const responseBody = await response.text();
-  console.log(`[JoltAPI] Response ${response.status} from ${redactUrl(url)} (${responseTimeMs}ms, ${responseBody.length}B)`);
+  console.log(`[JoltAPI] Response ${response.status} from ${redactUrl(step.url)} (${responseTimeMs}ms, ${responseBody.length}B)`);
   const responseSizeBytes = new TextEncoder().encode(responseBody).length;
   const contentType = response.headers.get('content-type') ?? '';
 
@@ -109,8 +147,9 @@ export async function executeRequest(request: IResolvedHttpRequest): Promise<IHt
     contentType,
     responseTimeMs,
     responseSizeBytes,
-    requestUrl: url,
-    requestMethod: request.method,
+    // The URL/method actually answered — after redirects these can differ from the request.
+    requestUrl: step.url,
+    requestMethod: (step.method as IResolvedHttpRequest['method']),
     timestamp: Date.now(),
   };
 }

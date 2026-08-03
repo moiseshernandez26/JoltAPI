@@ -76,6 +76,22 @@ suite('message protocol integration', () => {
       assert.equal(msg.payload.proxy.enabled, false);
     });
 
+    test('proxiesLoaded message carries the saved profile set', () => {
+      const msg = {
+        command: 'proxiesLoaded' as const,
+        payload: {
+          proxies: {
+            profiles: [
+              { id: 'p1', name: 'Corporate', host: 'proxy.example.com', port: 8080 },
+            ],
+          },
+        },
+      };
+      assert.equal(msg.command, 'proxiesLoaded');
+      assert.equal(msg.payload.proxies.profiles.length, 1);
+      assert.equal(msg.payload.proxies.profiles[0].port, 8080);
+    });
+
     test('copyCurl message has request and variables', () => {
       const msg = {
         command: 'copyCurl' as const,

@@ -9,5 +9,4 @@ export const WEBVIEW = {
 
 export const STORAGE = {
   BASE_DIR: '.joltapi',
-  COLLECTIONS_DIR: '.joltapi/collections',
 } as const;

@@ -1,5 +1,35 @@
-import type { IHttpRequest, IResolvedHttpRequest } from '../../models';
+import type { IHttpRequest, IProxyConfig, IProxyProfile, IResolvedHttpRequest } from '../../models';
+import { proxyProfileToConfig } from '../../models/proxy';
 import { interpolateTemplate } from './interpolation';
+
+/**
+ * Picks the proxy a request actually goes through.
+ *
+ * `proxyId` points at a saved profile in `.joltapi/proxies.json`. If that profile was
+ * deleted, the request is NOT silently sent direct — `missingProxyId` is returned so the
+ * caller can surface an error instead of leaking traffic that was meant to be proxied.
+ *
+ * Requests saved before 0.5.0 carry an inline `proxy` object instead; that path is kept
+ * as a fallback so old collections keep working.
+ */
+function resolveProxy(
+  request: IHttpRequest,
+  profiles: IProxyProfile[],
+): { proxy?: IProxyConfig; missingProxyId?: string } {
+  if (request.proxyId) {
+    const profile = profiles.find((p) => p.id === request.proxyId);
+    if (!profile) {
+      return { missingProxyId: request.proxyId };
+    }
+    return { proxy: proxyProfileToConfig(profile) };
+  }
+
+  if (request.proxy?.enabled) {
+    return { proxy: request.proxy };
+  }
+
+  return {};
+}
 
 /**
  * Resolves a request template into the exact payload sent to `httpService`.
@@ -16,7 +46,8 @@ import { interpolateTemplate } from './interpolation';
 export function resolveHttpRequest(
   request: IHttpRequest,
   variables: { key: string; value: string; enabled: boolean }[],
-): { resolved: IResolvedHttpRequest; rawPieces: string[] } {
+  proxyProfiles: IProxyProfile[] = [],
+): { resolved: IResolvedHttpRequest; rawPieces: string[]; missingProxyId?: string } {
   const rawPieces: string[] = [];
   const interp = (text: string): string => {
     const result = variables.length > 0 ? interpolateTemplate(text, variables) : text;
@@ -103,13 +134,18 @@ export function resolveHttpRequest(
     }
   }
 
+  const { proxy, missingProxyId } = resolveProxy(request, proxyProfiles);
+
   return {
     resolved: {
       method: request.method, url, headers, body,
-      proxy: request.proxy.enabled ? request.proxy : undefined,
+      proxy,
       timeout: request.settings.timeout,
       sslVerify: request.settings.sslVerify,
+      followRedirects: request.settings.followRedirects,
+      maxRedirects: request.settings.maxRedirects,
     },
     rawPieces,
+    missingProxyId,
   };
 }

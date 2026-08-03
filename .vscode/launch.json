@@ -18,11 +18,13 @@
       "type": "extensionHost",
       "request": "launch",
       "args": [
+        "${workspaceFolder}/tests/fixtures/workspace",
         "--extensionDevelopmentPath=${workspaceFolder}",
-        "--extensionTestsPath=${workspaceFolder}/out/tests/runTests"
+        "--extensionTestsPath=${workspaceFolder}/out-test/tests/integration/index"
       ],
       "outFiles": [
-        "${workspaceFolder}/out/**/*.js"
+        "${workspaceFolder}/out/**/*.js",
+        "${workspaceFolder}/out-test/**/*.js"
       ],
       "preLaunchTask": "npm: compile"
     }

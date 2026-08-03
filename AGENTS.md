@@ -239,6 +239,27 @@ Files that ship in the VSIX (visible on marketplace): `README.md`, `CHANGELOG.md
 
 **Before trusting any claim about what ships in the VSIX (including in this file or `docs/`), verify with `npx @vscode/vsce ls`** — a prior session's docs claimed `CONTRIBUTING.md` ships and that claim was wrong; it had apparently never been checked against real `vsce` output.
 
+## Releasing a New Version
+
+**Every version bump (root `package.json`) MUST end with a matching annotated git tag `vX.Y.Z`, pushed to `origin`.** This repo went 8 releases (0.1.0 → 0.6.0, spanning ~20 commits) with zero tags before v0.6.0 — nothing in GitHub's Releases page, no way to diff "what shipped in 0.4.0" without archaeology through commit messages. Don't let that regress.
+
+Checklist for a release, in order:
+
+1. Bump `version` in root `package.json` (this is what ships in the VSIX and drives the README badge — `webview-ui/package.json` is a separate, never-published sub-project and is NOT part of this version).
+2. Add a dated `## [X.Y.Z]` section to `CHANGELOG.md` at the top, above the previous entry.
+3. Update the version badge in `README.md` (`version-X.Y.Z-orange`).
+4. Run `npm install --package-lock-only` and confirm `package-lock.json`'s `version` and `packages[""].version` now match — **this drifted silently once already** (stuck at 0.5.0 through the entire 0.6.0 release) because nothing checks it. Commit the lockfile alongside the version bump, not as an afterthought later.
+5. `npm run lint && npm test && npm run build` — a release commit should be green on all three before it's tagged.
+6. Commit the version bump (`package.json`, `package-lock.json`, `CHANGELOG.md`, `README.md` together).
+7. Tag the commit that actually contains the synced lockfile — not an earlier one:
+   ```bash
+   git tag -a vX.Y.Z -m "JoltAPI vX.Y.Z" -m "$(<changelog section for this version>)"
+   git push origin main
+   git push origin vX.Y.Z
+   ```
+   Pushing the tag is what makes it show up under the repo's **Releases** page (GitHub offers to convert any pushed tag into a Release with one click, prefilling the changelog if the tag message has one — hence writing the actual changelog section into the tag `-m` body above, not just the version number).
+8. **Do not backfill tags for past versions without asking first.** For this repo specifically, `v0.2.0`/`v0.3.0` never existed as a real `package.json` state in any commit (it stayed at `0.1.0` through both releases), and `v0.5.0` likewise was never its own commit — it was bumped straight `0.4.0` → `0.6.0` in one commit. Retroactively tagging those would mean picking a commit whose `package.json` doesn't actually say that version, which is fabricating history rather than recording it. If asked to backfill, surface this and get an explicit go-ahead on which commit to use per version.
+
 ## Adding a New Command/Message
 
 1. Add the message type to BOTH `src/models/messages.ts` AND `webview-ui/src/types/messages.ts`

@@ -1,7 +1,14 @@
 import { strict as assert } from 'assert';
 import { resolveHttpRequest } from '../../src/panels/handlers/resolveRequest';
 import { extractUnresolved } from '../../src/panels/handlers/interpolation';
-import type { IHttpRequest } from '../../src/models';
+import type { IHttpRequest, IProxyProfile } from '../../src/models';
+
+const PROFILE: IProxyProfile = {
+  id: 'proxy-1',
+  name: 'Corporate',
+  host: 'proxy.example.com',
+  port: 8080,
+};
 
 function makeRequest(overrides: Partial<IHttpRequest> = {}): IHttpRequest {
   return {
@@ -13,7 +20,6 @@ function makeRequest(overrides: Partial<IHttpRequest> = {}): IHttpRequest {
     queryParams: [],
     body: { type: 'none' },
     auth: { type: 'none' },
-    proxy: { enabled: false, host: '', port: 0 },
     settings: { timeout: 30000, sslVerify: true, followRedirects: true, maxRedirects: 5 },
     ...overrides,
   };
@@ -100,6 +106,66 @@ suite('resolveRequest', () => {
       ]);
       assert.ok(resolved.body?.includes('name="name"'), resolved.body);
       assert.ok(resolved.body?.includes('Bob'), resolved.body);
+    });
+  });
+
+  suite('resolveHttpRequest — saved proxy profiles', () => {
+    test('no proxyId means the request is sent directly', () => {
+      const { resolved, missingProxyId } = resolveHttpRequest(makeRequest(), [], [PROFILE]);
+      assert.equal(resolved.proxy, undefined);
+      assert.equal(missingProxyId, undefined);
+    });
+
+    test('proxyId resolves to the saved profile host/port', () => {
+      const request = makeRequest({ proxyId: 'proxy-1' });
+      const { resolved, missingProxyId } = resolveHttpRequest(request, [], [PROFILE]);
+      assert.equal(missingProxyId, undefined);
+      assert.equal(resolved.proxy?.enabled, true);
+      assert.equal(resolved.proxy?.host, 'proxy.example.com');
+      assert.equal(resolved.proxy?.port, 8080);
+    });
+
+    test('profile auth is carried into the resolved proxy config', () => {
+      const request = makeRequest({ proxyId: 'proxy-1' });
+      const withAuth: IProxyProfile = { ...PROFILE, auth: { username: 'bob', password: 'pw' } };
+      const { resolved } = resolveHttpRequest(request, [], [withAuth]);
+      assert.deepEqual(resolved.proxy?.auth, { username: 'bob', password: 'pw' });
+    });
+
+    // A deleted profile must NOT silently fall back to a direct connection — traffic the
+    // user routed through a proxy would leak out. The caller turns this into an error.
+    test('a proxyId with no matching profile reports missingProxyId and no proxy', () => {
+      const request = makeRequest({ proxyId: 'gone' });
+      const { resolved, missingProxyId } = resolveHttpRequest(request, [], [PROFILE]);
+      assert.equal(missingProxyId, 'gone');
+      assert.equal(resolved.proxy, undefined);
+    });
+
+    test('legacy inline proxy (pre-0.5.0 requests) is still honored', () => {
+      const request = makeRequest({
+        proxy: { enabled: true, host: 'old.example.com', port: 3128 },
+      });
+      const { resolved, missingProxyId } = resolveHttpRequest(request, [], [PROFILE]);
+      assert.equal(missingProxyId, undefined);
+      assert.equal(resolved.proxy?.host, 'old.example.com');
+      assert.equal(resolved.proxy?.port, 3128);
+    });
+
+    test('a disabled legacy inline proxy is ignored', () => {
+      const request = makeRequest({
+        proxy: { enabled: false, host: 'old.example.com', port: 3128 },
+      });
+      const { resolved } = resolveHttpRequest(request, [], []);
+      assert.equal(resolved.proxy, undefined);
+    });
+
+    test('proxyId wins over a legacy inline proxy', () => {
+      const request = makeRequest({
+        proxyId: 'proxy-1',
+        proxy: { enabled: true, host: 'old.example.com', port: 3128 },
+      });
+      const { resolved } = resolveHttpRequest(request, [], [PROFILE]);
+      assert.equal(resolved.proxy?.host, 'proxy.example.com');
     });
   });
 });

@@ -1,12 +1,13 @@
 import { create } from 'zustand';
-import type { ICollection, IHistoryEntry, IVariable } from '../types';
+import type { ICollection, IHistoryEntry, IProxyProfile, IVariable } from '../types';
 
-export type SidebarTab = 'collections' | 'history' | 'variables';
+export type SidebarTab = 'collections' | 'history' | 'variables' | 'proxies';
 
 interface SidebarState {
   collections: ICollection[];
   history: IHistoryEntry[];
   variables: IVariable[];
+  proxies: IProxyProfile[];
   activeTab: SidebarTab;
   expandedCollections: Set<string>;
   isLoading: boolean;
@@ -15,6 +16,7 @@ interface SidebarState {
   setCollections: (collections: ICollection[]) => void;
   setHistory: (entries: IHistoryEntry[]) => void;
   setVariables: (vars: IVariable[]) => void;
+  setProxies: (proxies: IProxyProfile[]) => void;
   setActiveTab: (tab: SidebarTab) => void;
   toggleCollection: (id: string) => void;
   setIsLoading: (loading: boolean) => void;
@@ -25,6 +27,7 @@ export const useSidebarStore = create<SidebarState>((set) => ({
   collections: [],
   history: [],
   variables: [],
+  proxies: [],
   activeTab: 'collections',
   expandedCollections: new Set<string>(),
   isLoading: true,
@@ -33,6 +36,7 @@ export const useSidebarStore = create<SidebarState>((set) => ({
   setCollections: (collections) => set({ collections }),
   setHistory: (history) => set({ history }),
   setVariables: (variables) => set({ variables }),
+  setProxies: (proxies) => set({ proxies }),
   setActiveTab: (activeTab) => set({ activeTab }),
   toggleCollection: (id) =>
     set((state) => {

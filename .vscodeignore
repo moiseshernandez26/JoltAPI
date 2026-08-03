@@ -13,11 +13,11 @@ tests/**
 .gitignore
 tsconfig.json
 tsconfig.src.json
+esbuild.js
 docs/**
 .opencode/**
 AGENTS.md
 CLAUDE.md
 joltapi-video/**
-out/src/**
-out/tests/**
+out/**/*.js.map
 out-test/**

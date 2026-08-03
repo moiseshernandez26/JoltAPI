@@ -1,5 +1,6 @@
 import React from 'react';
 import {
+  useProxyStore,
   useRequestStore,
 } from '../store';
 import {
@@ -7,7 +8,8 @@ import {
   KeyValueEditor,
   BodyEditor,
   AuthEditor,
-  ProxyEditor,
+  ProxySelector,
+  SettingsEditor,
   UrlBar,
 } from '../components';
 import { HEADER_SUGGESTIONS, HEADER_VALUE_SUGGESTIONS } from '../utils/requestHeaders';
@@ -28,6 +30,8 @@ export const RequestBuilder: React.FC<RequestBuilderProps> = ({
   const setActiveTab = useRequestStore((s) => s.setActiveTab);
   const setMethod = useRequestStore((s) => s.setMethod);
   const setUrl = useRequestStore((s) => s.setUrl);
+  const proxyProfiles = useProxyStore((s) => s.profiles);
+  const proxiesLoaded = useProxyStore((s) => s.loaded);
 
   return (
     <>
@@ -96,9 +100,18 @@ export const RequestBuilder: React.FC<RequestBuilderProps> = ({
           />
         )}
         {activeTab === 'proxy' && (
-          <ProxyEditor
-            proxy={currentRequest.proxy}
-            onChange={(p) => useRequestStore.getState().setProxy(p)}
+          <ProxySelector
+            proxyId={currentRequest.proxyId}
+            profiles={proxyProfiles}
+            profilesLoaded={proxiesLoaded}
+            legacyProxy={currentRequest.proxy}
+            onChange={(id) => useRequestStore.getState().setProxyId(id)}
+          />
+        )}
+        {activeTab === 'settings' && (
+          <SettingsEditor
+            settings={currentRequest.settings}
+            onChange={(s) => useRequestStore.getState().setSettings(s)}
           />
         )}
       </div>

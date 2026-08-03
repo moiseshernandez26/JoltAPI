@@ -1,10 +1,10 @@
 import { randomUUID } from 'crypto';
-import type { IHttpRequest, IVariableSet, IHistoryEntry } from '../../models';
+import type { IHttpRequest, IVariableSet, IHistoryEntry, IProxyProfile } from '../../models';
 import type { HostToWebviewMessage } from '../../models/messages';
 import { executeRequest } from '../../services/httpService';
 import { extractUnresolved } from './interpolation';
 import { resolveHttpRequest } from './resolveRequest';
-import { loadCollections, saveCollection } from '../../services/storageService';
+import { loadCollections, loadProxyProfiles, saveCollection } from '../../services/storageService';
 import { generateRequestName } from '../../utils/formatters';
 import { logError } from '../../utils/logger';
 
@@ -17,7 +17,24 @@ export async function handleSendRequest(
   onChanged?: () => void,
 ): Promise<void> {
   const enabledVars = payload.variables.variables.filter((v) => v.enabled && v.key);
-  const { resolved, rawPieces } = resolveHttpRequest(payload.request, enabledVars);
+  const profiles = await loadProxyProfilesSafely();
+  const { resolved, rawPieces, missingProxyId } = resolveHttpRequest(
+    payload.request,
+    enabledVars,
+    profiles,
+  );
+
+  if (missingProxyId) {
+    // Fail loudly instead of sending direct — the user picked a proxy for a reason.
+    postMessage({
+      command: 'error',
+      payload: {
+        code: 'PROXY_NOT_FOUND',
+        message: 'The proxy saved on this request no longer exists. Pick another one in the Proxy tab, or re-create it in the sidebar\'s Proxies tab.',
+      },
+    });
+    return;
+  }
 
   const unresolved = extractUnresolved(...rawPieces);
   if (unresolved.length > 0) {
@@ -55,6 +72,15 @@ export async function handleSendRequest(
     const errorMessage = err instanceof Error ? err.message : 'Unknown error';
     const errorCode = (err as { code?: string }).code ?? 'UNKNOWN';
     postMessage({ command: 'error', payload: { code: errorCode, message: errorMessage } });
+  }
+}
+
+/** Proxy profiles live in the workspace — a window with no folder open simply has none. */
+async function loadProxyProfilesSafely(): Promise<IProxyProfile[]> {
+  try {
+    return (await loadProxyProfiles()).profiles;
+  } catch {
+    return [];
   }
 }
 

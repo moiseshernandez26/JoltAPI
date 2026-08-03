@@ -95,6 +95,17 @@ export const HighlightedTextarea: React.FC<HighlightedTextareaProps> = ({
       return;
     }
 
+    // Tag auto-close for the xml/html raw-body modes: `<user|` + `>` → `<user>|</user>`.
+    if (e.key === '>') {
+      const result = computeTagClose(value, selectionStart, selectionEnd, language);
+      if (result) {
+        e.preventDefault();
+        pendingSelectionRef.current = { start: result.start, end: result.end };
+        onChange(result.text);
+        return;
+      }
+    }
+
     // Type-over: typing a closing char right before an identical one just moves past it,
     // instead of inserting a duplicate. Checked before auto-close since quotes are their
     // own closing character.
@@ -269,6 +280,57 @@ export function computeAutoCloseInsertion(char: string, text: string, start: num
   }
 
   const newText = text.slice(0, start) + char + close + text.slice(start);
+  const caret = start + 1;
+  return { text: newText, start: caret, end: caret };
+}
+
+/**
+ * HTML elements that never have a closing tag. Auto-closing `<br>` into `<br></br>` would
+ * be actively wrong, so these are skipped — but only in `html` mode: in XML, `<br>` is just
+ * an element name like any other and does need a closer.
+ */
+const VOID_HTML_ELEMENTS = new Set([
+  'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input',
+  'link', 'meta', 'param', 'source', 'track', 'wbr',
+]);
+
+/**
+ * Typing `>` at the end of an opening tag inserts the matching closing tag and leaves the
+ * caret between them: `<user|` + `>` → `<user>|</user>`.
+ *
+ * This needs real tag-name parsing rather than the fixed character pairs used for brackets
+ * and quotes, which is why it isn't part of `AUTO_CLOSE_PAIRS`. Returns `null` — meaning
+ * "just type the `>` normally" — for anything that must not get a closer: closing tags
+ * (`</div`), self-closing tags (`<br /`), comments (`<!-- …`), declarations/PIs (`<?xml …`),
+ * an already-closed tag earlier on the line, and void elements in HTML mode.
+ */
+export function computeTagClose(
+  text: string,
+  start: number,
+  end: number,
+  language: string,
+): { text: string; start: number; end: number } | null {
+  if (start !== end) {return null;}
+  if (language !== 'xml' && language !== 'html') {return null;}
+
+  const before = text.slice(0, start);
+  const openIndex = before.lastIndexOf('<');
+  if (openIndex === -1) {return null;}
+
+  const inner = before.slice(openIndex + 1);
+  // A `>` after the last `<` means that tag is already finished — this `>` is something else.
+  if (inner.includes('>')) {return null;}
+  if (inner.startsWith('/') || inner.startsWith('!') || inner.startsWith('?')) {return null;}
+  if (inner.endsWith('/')) {return null;}
+
+  const nameMatch = /^([A-Za-z_][\w:.-]*)/.exec(inner);
+  if (!nameMatch) {return null;}
+  const tagName = nameMatch[1];
+
+  if (language === 'html' && VOID_HTML_ELEMENTS.has(tagName.toLowerCase())) {return null;}
+
+  const insertion = `></${tagName}>`;
+  const newText = text.slice(0, start) + insertion + text.slice(start);
   const caret = start + 1;
   return { text: newText, start: caret, end: caret };
 }

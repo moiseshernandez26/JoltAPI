@@ -1,4 +1,5 @@
 import React from 'react';
+import { SecretInput } from './SecretInput';
 import type { IAuthConfig, AuthType } from '../types';
 
 interface AuthEditorProps {
@@ -52,12 +53,12 @@ export const AuthEditor: React.FC<AuthEditorProps> = ({ auth, onChange }) => {
         {auth.type === 'bearer' && (
           <div style={styles.field}>
             <label style={styles.label}>Token</label>
-            <input
-              type="password"
+            <SecretInput
               value={auth.bearerToken ?? ''}
-              onChange={(e) => onChange({ ...auth, bearerToken: e.target.value })}
+              onChange={(bearerToken) => onChange({ ...auth, bearerToken })}
               placeholder="Enter bearer token"
-              style={styles.input}
+              inputStyle={styles.input}
+              label="bearer token"
             />
           </div>
         )}
@@ -76,12 +77,12 @@ export const AuthEditor: React.FC<AuthEditorProps> = ({ auth, onChange }) => {
             </div>
             <div style={styles.field}>
               <label style={styles.label}>Password</label>
-              <input
-                type="password"
+              <SecretInput
                 value={auth.basicPassword ?? ''}
-                onChange={(e) => onChange({ ...auth, basicPassword: e.target.value })}
+                onChange={(basicPassword) => onChange({ ...auth, basicPassword })}
                 placeholder="Password"
-                style={styles.input}
+                inputStyle={styles.input}
+                label="password"
               />
             </div>
           </>
@@ -101,12 +102,12 @@ export const AuthEditor: React.FC<AuthEditorProps> = ({ auth, onChange }) => {
             </div>
             <div style={styles.field}>
               <label style={styles.label}>Value</label>
-              <input
-                type="password"
+              <SecretInput
                 value={auth.apiKeyValue ?? ''}
-                onChange={(e) => onChange({ ...auth, apiKeyValue: e.target.value })}
+                onChange={(apiKeyValue) => onChange({ ...auth, apiKeyValue })}
                 placeholder="Enter API key value"
-                style={styles.input}
+                inputStyle={styles.input}
+                label="API key value"
               />
             </div>
             <div style={styles.field}>

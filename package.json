@@ -2,7 +2,7 @@
   "name": "joltapi",
   "displayName": "JoltAPI",
   "description": "A UI-driven REST API client for VS Code — build, send, and inspect HTTP requests without leaving the editor.",
-  "version": "0.4.0",
+  "version": "0.6.0",
   "publisher": "S0nder",
   "license": "MIT",
   "icon": "JoltIcon.png",
@@ -31,7 +31,7 @@
   "capabilities": {
     "untrustedWorkspaces": {
       "supported": "limited",
-      "description": "Collections and variables are read from and written to the workspace as plain JSON and are never executed. Sending a request always requires an explicit user action. In untrusted workspaces, workspace-level overrides of the proxy and default-header settings are ignored, so an untrusted repository's .vscode/settings.json cannot silently redirect your requests through another proxy or inject extra headers.",
+      "description": "Collections, variables, and proxies are read from and written to the workspace as plain JSON and are never executed. Sending a request always requires an explicit user action. In untrusted workspaces, workspace-level overrides of the proxy and default-header settings are ignored — so an untrusted repository's .vscode/settings.json can neither inject extra headers nor seed a proxy profile that would route your requests through an attacker's server.",
       "restrictedConfigurations": [
         "joltapi.proxy.host",
         "joltapi.proxy.port",
@@ -40,8 +40,7 @@
       ]
     },
     "virtualWorkspaces": {
-      "supported": false,
-      "description": "JoltAPI reads and writes collections/variables with Node's fs module directly rather than vscode.workspace.fs, so it requires a real (local or remote) file system."
+      "supported": true
     }
   },
   "activationEvents": [],
@@ -131,17 +130,17 @@
         "joltapi.proxy.host": {
           "type": "string",
           "default": "",
-          "description": "Default proxy host."
+          "markdownDescription": "Proxy host imported once per workspace into a saved proxy profile named `Workspace default`. Manage proxies in the JoltAPI sidebar's **Proxies** tab; requests pick one there."
         },
         "joltapi.proxy.port": {
           "type": "number",
           "default": 0,
-          "description": "Default proxy port."
+          "markdownDescription": "Proxy port for `#joltapi.proxy.host#`. Both must be set for the profile to be imported."
         },
         "joltapi.proxy.username": {
           "type": "string",
           "default": "",
-          "description": "Default proxy username."
+          "markdownDescription": "Proxy username for `#joltapi.proxy.host#`. The password is never stored in settings — add it to the profile in the **Proxies** tab."
         },
         "joltapi.historyLimit": {
           "type": "number",
@@ -170,25 +169,28 @@
     }
   },
   "scripts": {
-    "vscode:prepublish": "npm run clean && npm run build",
+    "vscode:prepublish": "npm run clean && npm run compile:production && npm run build:webview",
     "clean": "node -e \"require('fs').rmSync('out',{recursive:true,force:true})\"",
     "build:vscodepkg": "vsce package",
     "build": "npm run compile && npm run build:webview",
-    "compile": "tsc -p tsconfig.src.json",
-    "watch": "tsc -p tsconfig.src.json -watch",
+    "compile": "node esbuild.js",
+    "watch": "node esbuild.js --watch",
     "build:webview": "cd webview-ui && npm run build",
     "watch:webview": "cd webview-ui && npm run dev",
     "dev": "npm run compile && npm run build:webview",
     "lint": "tsc --noEmit -p tsconfig.src.json && cd webview-ui && npx tsc --noEmit",
     "test:host": "npx tsc -p tsconfig.json && npx mocha --ui tdd out-test/tests/**/*.test.js",
     "test:webview": "cd webview-ui && npm test",
-    "test": "npm run test:host && npm run test:webview"
+    "test": "npm run test:host && npm run test:webview",
+    "test:integration": "npx tsc -p tsconfig.json && node out-test/tests/integration/runTests.js",
+    "compile:production": "node esbuild.js --production"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.6",
     "@types/node": "^20.10.0",
     "@types/vscode": "^1.82.0",
     "@vscode/test-electron": "^2.3.8",
+    "esbuild": "^0.21.5",
     "mocha": "^10.2.0",
     "typescript": "^5.3.0"
   },

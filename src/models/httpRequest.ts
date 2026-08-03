@@ -72,7 +72,8 @@ export interface IAuthConfig {
 }
 
 /**
- * Proxy configuration for a single request.
+ * Flat proxy configuration consumed by `httpService`. Produced from a saved
+ * `IProxyProfile` (see `models/proxy.ts`) at resolve time.
  */
 export interface IProxyConfig {
   enabled: boolean;
@@ -107,7 +108,17 @@ export interface IHttpRequest {
   queryParams: IKeyValuePair[];
   body: IRequestBody;
   auth: IAuthConfig;
-  proxy: IProxyConfig;
+  /**
+   * Id of the saved proxy profile (`.joltapi/proxies.json`) this request goes through.
+   * Empty/undefined means "no proxy — send directly".
+   */
+  proxyId?: string;
+  /**
+   * @deprecated Inline per-request proxy from JoltAPI <= 0.4.0. Still honored when a
+   * request has no `proxyId` so old collections keep working; new requests select a
+   * saved profile instead.
+   */
+  proxy?: IProxyConfig;
   settings: IHttpSettings;
 }
 
@@ -122,4 +133,7 @@ export interface IResolvedHttpRequest {
   proxy?: IProxyConfig;
   timeout: number;
   sslVerify: boolean;
+  followRedirects: boolean;
+  /** Only meaningful when `followRedirects` is true. */
+  maxRedirects: number;
 }

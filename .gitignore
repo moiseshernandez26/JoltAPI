@@ -15,3 +15,6 @@ joltapi-video/node_modules/
 # LLM session memory (private — regenerated from scratch if missing)
 docs/SPEC.md
 docs/handoff/
+
+# @vscode/test-electron downloads a VS Code build here
+.vscode-test/

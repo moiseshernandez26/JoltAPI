@@ -11,6 +11,7 @@ import {
   handleMoveRequest,
 } from './handlers/collectionHandler';
 import { handleLoadVariables, handleSaveVariables } from './handlers/variableHandler';
+import { handleLoadProxies, handleSaveProxies } from './handlers/proxyHandler';
 import { handleExportCollection, handleImportCollection } from './handlers/importExportHandler';
 import { handleGetSettings, handleShowOpenDialog, handleShowSaveDialog } from './handlers/settingsHandler';
 import {
@@ -105,6 +106,13 @@ export async function handleMessage(
       break;
     case 'saveVariables':
       await handleSaveVariables(message.payload, postMessage);
+      notifyChanged();
+      break;
+    case 'loadProxies':
+      await handleLoadProxies(postMessage, context);
+      break;
+    case 'saveProxies':
+      await handleSaveProxies(message.payload, postMessage);
       notifyChanged();
       break;
     case 'getHistory':

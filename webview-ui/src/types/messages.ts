@@ -35,11 +35,25 @@ export interface IAuthConfig {
   apiKeyPlacement?: 'header' | 'query';
 }
 
+/** Flat proxy config consumed by the host's httpService (produced from a saved profile). */
 export interface IProxyConfig {
   enabled: boolean;
   host: string;
   port: number;
   auth?: { username: string; password: string };
+}
+
+/** A named, reusable proxy stored in `.joltapi/proxies.json` and shared across requests. */
+export interface IProxyProfile {
+  id: string;
+  name: string;
+  host: string;
+  port: number;
+  auth?: { username: string; password: string };
+}
+
+export interface IProxyProfileSet {
+  profiles: IProxyProfile[];
 }
 
 export interface IHttpSettings {
@@ -58,7 +72,10 @@ export interface IHttpRequest {
   queryParams: IKeyValuePair[];
   body: IRequestBody;
   auth: IAuthConfig;
-  proxy: IProxyConfig;
+  /** Id of the saved proxy profile this request uses. Empty/undefined = send directly. */
+  proxyId?: string;
+  /** @deprecated Inline proxy from JoltAPI <= 0.4.0, still honored by the host when no proxyId. */
+  proxy?: IProxyConfig;
   settings: IHttpSettings;
 }
 
@@ -132,6 +149,8 @@ export type WebviewToHostMessage =
   | IMessage<'moveRequest', { fromCollectionId: string; toCollectionId: string; requestId: string }>
   | IMessage<'loadVariables'>
   | IMessage<'saveVariables', { variables: IVariableSet }>
+  | IMessage<'loadProxies'>
+  | IMessage<'saveProxies', { proxies: IProxyProfileSet }>
   | IMessage<'getHistory'>
   | IMessage<'clearHistory'>
   | IMessage<'exportCollection', { collectionId: string; filePath: string }>
@@ -147,6 +166,7 @@ export type HostToWebviewMessage =
   | IMessage<'responseReceived', { requestId: string; response: IHttpResponse }>
   | IMessage<'collectionsLoaded', { collections: ICollection[] }>
   | IMessage<'variablesLoaded', { variables: IVariableSet }>
+  | IMessage<'proxiesLoaded', { proxies: IProxyProfileSet }>
   | IMessage<'historyLoaded', { entries: IHistoryEntry[] }>
   | IMessage<'settingsLoaded', { settings: IHttpSettings; proxy: IProxyConfig; defaultHeaders: IKeyValuePair[] }>
   | IMessage<'collectionImported', { collection: ICollection }>

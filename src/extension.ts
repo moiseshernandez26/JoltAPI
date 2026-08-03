@@ -3,7 +3,7 @@ import { registerAllCommands } from './commands';
 import { SidebarProvider } from './providers/sidebarProvider';
 import { JoltApiPanel } from './panels';
 import { setBroadcastRefresh } from './panels/messageHandlers';
-import { loadCollections, loadVariables } from './services/storageService';
+import { loadCollections, loadProxyProfiles, loadVariables } from './services/storageService';
 import { loadHistory } from './panels/handlers/historyHandler';
 import { getOutputChannel } from './utils/outputChannel';
 import type { IHttpRequest } from './models';
@@ -33,6 +33,13 @@ export function activate(context: vscode.ExtensionContext): void {
     try {
       const variables = await loadVariables();
       const msg = { command: 'variablesLoaded' as const, payload: { variables } };
+      SidebarProvider.sendToSidebar(msg);
+      JoltApiPanel.sendToWebview(msg);
+    } catch { /* workspace may not be open */ }
+
+    try {
+      const proxies = await loadProxyProfiles();
+      const msg = { command: 'proxiesLoaded' as const, payload: { proxies } };
       SidebarProvider.sendToSidebar(msg);
       JoltApiPanel.sendToWebview(msg);
     } catch { /* workspace may not be open */ }

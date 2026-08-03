@@ -1,5 +1,7 @@
 export type { HttpMethod, BodyType, RawContentType, AuthType } from './httpRequest';
 export type { IKeyValuePair, IRequestBody, IAuthConfig, IProxyConfig, IHttpSettings, IHttpRequest, IResolvedHttpRequest } from './httpRequest';
+export type { IProxyProfile, IProxyProfileSet } from './proxy';
+export { proxyProfileToConfig } from './proxy';
 export type { IHttpResponseHeader, IHttpResponse } from './httpResponse';
 export type { IVariable, IVariableSet } from './variable';
 export type { ICollection, ICollectionRequest } from './collection';

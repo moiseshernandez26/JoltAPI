@@ -61,7 +61,6 @@ export function convertInsomniaToCollection(insomnia: InsomniaExport): ICollecti
         queryParams: [],
         body,
         auth: { type: 'none' } as { type: AuthType },
-        proxy: { enabled: false, host: '', port: 0 },
         settings: {
           timeout: 30000,
           sslVerify: true,

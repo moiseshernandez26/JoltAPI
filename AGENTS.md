@@ -44,7 +44,7 @@ When another LLM continues this project:
 
 ## Two Separate Projects
 
-- **Extension host** (`/`): Node.js, compiled with `tsc` to `out/`. Entry: `src/extension.ts`.
+- **Extension host** (`/`): Node.js, bundled with **esbuild** (`esbuild.js`) into a single `out/extension.js`. Entry: `src/extension.ts`. `tsc` is still the type-checker (`npm run lint`) and still compiles the test build to `out-test/`, but it no longer produces what ships.
 - **Webview UI** (`webview-ui/`): React + Vite, built to `webview-ui/dist/`. Entry: `webview-ui/src/main.tsx`.
 
 Each has its own `package.json`, `node_modules`, and `tsconfig`. Commands for the webview must run from `webview-ui/`.
@@ -61,8 +61,9 @@ npm run watch                     # Terminal 1: watch extension TS
 cd webview-ui && npm run dev      # Terminal 2: watch webview build
 
 # One-shot build
-npm run build                     # compiles host + builds webview
-npm run compile                   # host TS only (tsc)
+npm run build                     # bundles host (esbuild) + builds webview (vite)
+npm run compile                   # host bundle only → out/extension.js
+npm run compile:production        # minified, no sourcemap (used by vscode:prepublish)
 cd webview-ui && npm run build    # webview only (vite)
 
 # Type checking
@@ -70,14 +71,22 @@ npm run lint                      # tsc --noEmit on both projects
 cd webview-ui && npx tsc --noEmit # webview typecheck only
 
 # Tests
-npm run test:host      # extension host: tsc + mocha (tests/)
-npm run test:webview   # webview-ui: vitest (webview-ui/tests/)
-npm test               # both
+npm run test:host        # pure-logic host tests: tsc → out-test/ + mocha (tests/unit, tests/integration/*.test.ts)
+npm run test:webview     # webview-ui: vitest (webview-ui/tests/)
+npm test                 # both of the above
+npm run test:integration # REAL VS Code via @vscode/test-electron (tests/integration/*.itest.ts)
 ```
+
+**Two different things are called "integration" here.** `tests/integration/*.test.ts` are plain
+type/shape checks run by the normal mocha runner. `tests/integration/*.itest.ts` run *inside* a
+downloaded VS Code with a live `vscode` API, launched by `tests/integration/runTests.ts` and
+collected by `tests/integration/index.ts`. The `.itest.js` suffix is what keeps the two apart —
+name a real integration test `*.test.ts` and the unit runner will try to load `vscode` outside
+the host and blow up.
 
 ## F5 Debugging Gotcha
 
-`preLaunchTask` in `.vscode/launch.json` only runs `npm: compile` (TypeScript). The **webview UI is NOT auto-built** before launch. You must run `cd webview-ui && npm run build` first, or F5 will load stale webview assets.
+`preLaunchTask` in `.vscode/launch.json` only runs `npm: compile` (the esbuild host bundle). The **webview UI is NOT auto-built** before launch. You must run `cd webview-ui && npm run build` first, or F5 will load stale webview assets.
 
 ## Type Sharing Between Host and Webview
 
@@ -104,6 +113,7 @@ panels/messageHandlers.ts →  routes by command string
   ├── handlers/sendRequestHandler.ts  → interpolate + httpService.executeRequest()
   ├── handlers/collectionHandler.ts   → load/save/delete/rename/move collections
   ├── handlers/variableHandler.ts    → load/save variables
+  ├── handlers/proxyHandler.ts       → load/save proxy profiles
   ├── handlers/historyHandler.ts    → history via globalState
   ├── handlers/importExportHandler.ts → import/export
   ├── handlers/settingsHandler.ts    → settings + dialogs
@@ -116,7 +126,7 @@ Main Panel Webview (React + Zustand)
 panels/webviewPanel.ts   →  delegates to messageHandlers
 ```
 
-**Cross-webview state sync**: After any mutation (save/delete collection, save/delete variables, save request, etc.), `notifyChanged()` calls `broadcastRefresh()` in `extension.ts`, which pushes fresh `collectionsLoaded`, `variablesLoaded` to BOTH webviews via `SidebarProvider.sendToSidebar()` and `JoltApiPanel.sendToWebview()`.
+**Cross-webview state sync**: After any mutation (save/delete collection, save/delete variables, save/delete proxy profile, save request, etc.), `notifyChanged()` calls `broadcastRefresh()` in `extension.ts`, which pushes fresh `collectionsLoaded`, `variablesLoaded`, `proxiesLoaded` to BOTH webviews via `SidebarProvider.sendToSidebar()` and `JoltApiPanel.sendToWebview()`.
 
 **Message loss prevention**: `webview-ui/src/api/bridge.ts` registers `window.addEventListener('message')` at module level (before React mounts) with a `_pending` buffer array. Messages arriving before `onMessage()` is called by React's `useEffect` are queued and flushed immediately when the handler registers. This guarantees zero message loss for cold-started panels. Each webview gets its own copy of `bridge.ts` via the shared `global.js` chunk.
 
@@ -141,16 +151,20 @@ Webview uses **Zustand** with dedicated stores per domain:
 - `variableStore` — flat variable list (for interpolation)
 - `tabStore` — multi-tab state: `tabs: IRequestTab[]`, `activeTabIndex`, `addTab`, `addPrepopulatedTab(name, method, url)`, `removeTab`, `setActiveTab`, `updateTab`, `closeAllTabs`, `closeOtherTabs`. Tabs have a `fromCollection: boolean` flag — `true` for tabs opened from collections, `false` for manual tabs. This flag controls which tabs are auto-closed during rename/delete sync.
 
-Sidebar uses its own store:
-- `sidebarStore` — collections, history, variables, activeTab sidebar tab, expandedCollections, isLoading
+- `proxyStore` — saved proxy profiles (panel-side, feeds the request's proxy dropdown)
 
-Sidebar tabs are `'collections' | 'history' | 'variables'`.
+Sidebar uses its own store:
+- `sidebarStore` — collections, history, variables, proxies, activeTab sidebar tab, expandedCollections, isLoading
+
+Sidebar tabs are `'collections' | 'history' | 'variables' | 'proxies'`.
+Request-builder tabs are `'params' | 'headers' | 'body' | 'auth' | 'proxy' | 'settings'`.
 
 ## HTTP Engine Quirks
 
 - Uses Node.js **native `fetch`** (undici under the hood, available in Node 18+) for the actual request
 - Proxy and SSL-verify-disable use `require('undici')` **dynamically at runtime** (not a static import) to construct a `ProxyAgent`/`Agent` dispatcher — the return type is manually cast to `unknown` rather than using undici's real types, so this stays a deliberate runtime dependency check, not a compile-time one
 - Timeout uses `AbortController` + `setTimeout` (not `AbortSignal.timeout()` because `@types/node` version expects 2 args)
+- **Redirects are followed manually** (`redirect: 'manual'` + a loop in `executeRequest`, helpers in `services/redirects.ts`). `fetch`'s own following can't honor `maxRedirects`, can't stop at the first hop, and can't strip credentials cross-origin. `nextRedirectStep()` owns the three rules that matter: relative `Location` resolution, POST→GET downgrade on 301/302/303, and dropping `Authorization`/`Cookie`/`Proxy-Authorization` when the origin changes (the redirect target is attacker-chosen, so forwarding a bearer token there is a real exfiltration path). The response's `requestUrl`/`requestMethod` report the *final* hop.
 - `buildCurlCommand()` uses `shellEscape()` with single-quote wrapping — do not revert to ad-hoc escaping
 - `redactUrl()` strips query param values before any log output
 - **Gotcha — `undici` is a real `dependencies` entry AND needs its own `.vscodeignore` re-include:** it used to be `require()`d without being declared as a dependency at all, so it silently failed in every environment (confirmed via test — see `tests/unit/httpService.test.ts`) and proxy/SSL-bypass did nothing with no error shown. It's now in `package.json` `dependencies`, but `.vscodeignore`'s blanket `node_modules/**` exclusion still needs an explicit negation for it (scoped to `package.json`, `LICENSE`, `index.js`, `index-fetch.js`, `lib/**` — not the whole package, which also has unneeded `docs/`/`types/`/`scripts/`). If you ever touch `.vscodeignore` or bump/replace this dependency, verify with `npx @vscode/vsce ls | grep undici` — don't assume it's still shipping. See `docs/SPEC.md` §11.1.
@@ -161,8 +175,29 @@ Happens at **send time**, resolved by `resolveHttpRequest()` in `handlers/resolv
 
 **Gotcha — interpolate BEFORE URL-encoding, never after:** `URLSearchParams.append()` percent-encodes `{` and `}` (`{{token}}` → `%7B%7Btoken%7D%7D`). If you interpolate the fully-assembled URL string *after* query params have been appended, the `{{name}}` regex will never match the now-encoded text — the variable silently stays unresolved, and it won't even get flagged as "unresolved" if that same check also runs against the encoded URL (this was a real, shipped bug — see `docs/handoff/16_CHANGES.md` Bug 1). The correct pattern, used in `resolveRequest.ts`: interpolate each query-param/header/auth/body piece individually via the local `interp()` helper *before* it goes into `URLSearchParams` or the headers object, and collect the pre-encode result into `rawPieces` for `extractUnresolved()` to check. `resolveRequest.ts` is deliberately free of any `vscode` import (directly or transitively) so it stays unit-testable outside the extension host — don't reintroduce a dependency on `storageService.ts` or similar into it.
 
+## Proxy Profiles
+
+Proxies are **shared, not per-request**. `.joltapi/proxies.json` holds `IProxyProfile[]` (id, name, host, port, optional auth); an `IHttpRequest` only stores `proxyId`. The sidebar's Proxies tab owns CRUD (`ProxiesPanel` + `ProxyForm`), the request's Proxy tab is a pure selector (`ProxySelector`).
+
+- **Resolution happens host-side** in `resolveRequest.ts`'s `resolveProxy()` — `sendRequestHandler` loads the profiles and passes them in, so `resolveRequest.ts` stays `vscode`-free. `curlHandler` passes them too, so a copied command carries `--proxy`/`--proxy-user` and reproduces what JoltAPI actually sends; a missing profile there is reported rather than yielding a command that silently goes direct.
+- **Gotcha — nothing may silently fall back to "send direct".** There are two distinct paths and both must fail loudly, because a request the user routed through a proxy leaking out direct is the worst outcome this feature has:
+  1. Deleted profile → `resolveHttpRequest` returns `missingProxyId`, `sendRequestHandler` posts `PROXY_NOT_FOUND` and does not send. `ProxySelector` mirrors it with a "Missing proxy — deleted" option + red warning.
+  2. Unbuildable agent → `httpService.executeRequest` throws `PROXY_AGENT_FAILED` when `createProxyAgent()` returns `undefined` (bad host, undici missing). It used to just skip the dispatcher and send unproxied with only a `console.error`. Keep the `clearTimeout` before that throw or the abort timer leaks.
+- **Host field validation lives in `webview-ui/src/utils/proxyHost.ts`** (`parseProxyHost` / `validateProxyHost` / `isValidPort`, unit-tested in `webview-ui/tests/proxyHost.test.ts`). A pasted `http://host:8080/` is split into host + port; a path/space/`@`/leftover colon is rejected with an inline error rather than silently mangled — that's what produced the malformed `http://host:8080:8080` URI and the silent direct send.
+- **Legacy**: `IHttpRequest.proxy` (the inline 0.4.0 shape) is still honored when there's no `proxyId`, so old collections/history entries keep working. `setProxyId()` clears it, migrating the request. `ProxySelector` renders it as its own selected option (via the `LEGACY` sentinel) — never let the dropdown read "No proxy — send directly" for a request that will in fact be proxied. Don't drop this branch without a migration pass over saved collections.
+- **`proxyStore.loaded`** exists so an empty `profiles` array during the startup round trip isn't mistaken for "the profile was deleted". Any new UI that reasons about a missing profile must check it.
+- **Export/import**: `.joltapi.json` bundles the profiles its requests reference (`collectReferencedProxies`, **credentials stripped** — an export is a file people mail around), and `handleImportCollection` merges back only ids the workspace doesn't already have, so a local profile with credentials always wins.
+
 ## Storage
 
+**Everything goes through `vscode.workspace.fs`, never Node's `fs`.** That is what makes
+`capabilities.virtualWorkspaces.supported: true` honest — in a virtual workspace (github.dev,
+FS providers) a URI has no usable `.fsPath`, so `fs` would fail while still working perfectly
+on your local machine. `storageService.ts`, `exportService.ts`, and `importService.ts` are all
+URI-based, and the file dialogs in `settingsHandler.ts` hand back `uri.toString()` rather than
+`.fsPath`. `src/` has zero imports of `fs` or `path` — keep it that way.
+
+- `proxies.json` → `<workspace>/.joltapi/proxies.json`
 - `variables.json` → `<workspace>/.joltapi/variables.json`
 - Collections → `<workspace>/.joltapi/collections/<name>.json`
 - History → `globalState` with key `joltapi.history`
@@ -177,7 +212,7 @@ Happens at **send time**, resolved by `resolveHttpRequest()` in `handlers/resolv
 - **postMessage origin** is validated in `bridge.ts` (`event.origin.startsWith('vscode-webview://')`).
 - **cURL commands** use `shellEscape()` with single-quote wrapping in `httpService.ts`. Never use ad-hoc double-quote escaping.
 - **Logging** uses `redactUrl()` to strip query param values before output. Never log raw URLs.
-- **Sensitive fields** (bearer token, API key value, basic password) use `type="password"`. Do not change to `type="text"`.
+- **Sensitive fields** (bearer token, API key value, basic password, proxy password) use the shared `components/SecretInput.tsx` — a `type="password"` input with an eye button that flips to `type="text"` only while the user holds it revealed. Never ship a bare `type="text"` for a secret, and don't hand-roll a second toggle: reuse `SecretInput` so masking-by-default stays the invariant (its `revealed` state is per-instance and resets on remount, e.g. switching auth type). `ProxySelector` shows a selected proxy's password as `••••••`, never the value.
 - **Workspace Trust**: `package.json` `capabilities.untrustedWorkspaces.restrictedConfigurations` lists `joltapi.proxy.host`, `joltapi.proxy.port`, `joltapi.proxy.username`, `joltapi.defaultHeaders`. Without this, an untrusted repo's own `.vscode/settings.json` could silently reroute a user's requests through an attacker proxy or inject extra headers (e.g. exfiltrating an `Authorization` value) into every request sent while that workspace is open — with no trust prompt involved, since none of these are code execution. If you add a new setting whose value flows into every outgoing request, add it to this list too.
 - **Errors** from the 4 vscode-dependent handlers (`sendRequestHandler`, `collectionHandler`, `variableHandler`, `importExportHandler`) go through `logError()` in `utils/logger.ts`, which writes to both `console.error` and the "JoltAPI" Output Channel (`utils/outputChannel.ts`) — don't `console.error` directly in those files, use `logError()` so users can actually see it via View > Output. `httpService.ts` is the one exception: it stays free of any `vscode` import for unit testability and uses plain `console.error`.
 
@@ -193,6 +228,8 @@ Happens at **send time**, resolved by `resolveHttpRequest()` in `handlers/resolv
 - **JSON body Format button**: `BodyEditor.tsx` shows a "Format" button above the JSON `HighlightedTextarea`, disabled whenever `body.jsonBody` is empty or invalid (reuses the same `getJsonError()` check that drives the red error border). `JSON.stringify(parsed, null, 4)` — 4 spaces, matching `HighlightedTextarea`'s own `INDENT` constant used by Tab and auto-indent-on-Enter.
 
 ## VSIX Packaging
+
+**The host ships as one bundled file.** `esbuild.js` produces `out/extension.js`; `vscode:prepublish` runs the minified `compile:production` variant, so no sourcemap ships. `undici` is deliberately `external` in the bundle — it loads its llhttp parser from `.wasm` files relative to its own `__dirname`, and bundling it would break that lookup and silently kill proxy + SSL-bypass support (the exact class of bug this repo shipped twice). It therefore still needs its `.vscodeignore` negations.
 
 `.vscodeignore` includes `out/` for packaging (compiled JS is needed in the VSIX). Also excluded: `src/`, `webview-ui/` (except `webview-ui/dist/**`), `tests/`, `webview-ui/tests/`, most of `node_modules/` (except specific `undici` files — see HTTP Engine Quirks above), `docs/`, `.vscode/`, `.vscode-test/`, `tsconfig.json`, `tsconfig.src.json`, `.gitignore`, `AGENTS.md`, `CLAUDE.md`.
 
@@ -234,3 +271,24 @@ The sync logic lives in `MainView.tsx` (not in `tabStore`) because it needs acce
 - Response viewer → `views/ResponseView.tsx`
 - Key-value editor → `components/KeyValueEditor.tsx` + `components/AutocompleteInput.tsx`
 - Consider extracting handler groups into `panels/handlers/<domain>.ts`
+## Per-Request Settings
+
+`SettingsEditor.tsx` (Settings tab) edits `IHttpRequest.settings` — timeout, sslVerify,
+followRedirects, maxRedirects. All four are now genuinely honored end to end: `resolveRequest`
+puts them on `IResolvedHttpRequest` and `httpService` acts on each one.
+
+**Before adding a control here, check the host actually implements it.** `followRedirects` and
+`maxRedirects` sat in the model since v0.1.0 with nothing reading them; shipping a UI for them
+without first writing the redirect loop would have been a switch that does nothing. If a setting
+isn't wired through `resolveRequest.ts` → `httpService.ts`, wire it first.
+
+## Body Editor Auto-Close
+
+Two different mechanisms live in `HighlightedTextarea.tsx`:
+- `AUTO_CLOSE_PAIRS` + `computeAutoCloseInsertion` — fixed character pairs (brackets/quotes), any language.
+- `computeTagClose` — HTML/XML tag closing on `>`, which needs real tag-name parsing and so is
+  deliberately NOT a character pair. It bails out for closing tags, self-closing tags, comments,
+  declarations, an already-closed tag, and — in `html` mode only — void elements like `<br>`.
+  `xml` mode does close `<br>`, because XML has no void elements.
+
+Both are pure functions exported for vitest; the component only wires them to `keydown`.

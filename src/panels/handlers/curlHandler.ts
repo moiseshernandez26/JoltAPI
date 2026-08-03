@@ -1,7 +1,8 @@
 import * as vscode from 'vscode';
-import type { IHttpRequest, IVariableSet } from '../../models';
+import type { IHttpRequest, IProxyProfile, IVariableSet } from '../../models';
 import type { HostToWebviewMessage } from '../../models/messages';
-import { buildCurlCommand, shellEscape } from '../../services/httpService';
+import { buildCurlCommand, buildCurlProxyFlags, shellEscape } from '../../services/httpService';
+import { loadProxyProfiles } from '../../services/storageService';
 import { interpolateTemplate } from './interpolation';
 import { resolveHttpRequest } from './resolveRequest';
 
@@ -19,7 +20,23 @@ export async function handleCopyCurl(
   postMessage: PostFn,
 ): Promise<void> {
   const enabledVars = payload.variables.variables.filter((v) => v.enabled && v.key);
-  const { resolved } = resolveHttpRequest(payload.request, enabledVars);
+  let profiles: IProxyProfile[] = [];
+  try {
+    profiles = (await loadProxyProfiles()).profiles;
+  } catch { /* no workspace open — the request simply has no proxy to resolve */ }
+
+  const { resolved, missingProxyId } = resolveHttpRequest(payload.request, enabledVars, profiles);
+
+  if (missingProxyId) {
+    postMessage({
+      command: 'error',
+      payload: {
+        code: 'PROXY_NOT_FOUND',
+        message: 'The proxy saved on this request no longer exists, so the cURL command would not match what JoltAPI sends. Pick another proxy in the Proxy tab first.',
+      },
+    });
+    return;
+  }
 
   const enabledFormData = payload.request.body.type === 'form-data'
     ? (payload.request.body.formData ?? []).filter((f) => f.enabled && f.key)
@@ -39,6 +56,7 @@ export async function handleCopyCurl(
       .map(([k, v]) => `-H ${shellEscape(`${k}: ${v}`)}`);
     const parts: string[] = ['curl'];
     if (resolved.method !== 'GET') {parts.push(`-X ${resolved.method}`);}
+    parts.push(...buildCurlProxyFlags(resolved.proxy));
     parts.push(...headerLines);
     parts.push(...formParts);
     parts.push(shellEscape(resolved.url));
@@ -48,7 +66,9 @@ export async function handleCopyCurl(
     return;
   }
 
-  const curl = buildCurlCommand(resolved.method, resolved.url, resolved.headers, resolved.body);
+  const curl = buildCurlCommand(
+    resolved.method, resolved.url, resolved.headers, resolved.body, resolved.proxy,
+  );
   await vscode.env.clipboard.writeText(curl);
   postMessage({ command: 'curlCopied', payload: undefined });
 }

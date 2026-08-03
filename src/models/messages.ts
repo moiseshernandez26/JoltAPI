@@ -1,4 +1,5 @@
 import type { IHttpRequest, IHttpSettings, IKeyValuePair, IProxyConfig } from './httpRequest';
+import type { IProxyProfileSet } from './proxy';
 import type { IHttpResponse } from './httpResponse';
 import type { IVariableSet } from './variable';
 import type { ICollection, ICollectionRequest } from './collection';
@@ -20,6 +21,8 @@ export type WebviewToHostMessage =
   | IMessage<'moveRequest', { fromCollectionId: string; toCollectionId: string; requestId: string }>
   | IMessage<'loadVariables'>
   | IMessage<'saveVariables', { variables: IVariableSet }>
+  | IMessage<'loadProxies'>
+  | IMessage<'saveProxies', { proxies: IProxyProfileSet }>
   | IMessage<'getHistory'>
   | IMessage<'clearHistory'>
   | IMessage<'exportCollection', { collectionId: string; filePath: string }>
@@ -35,6 +38,7 @@ export type HostToWebviewMessage =
   | IMessage<'responseReceived', { requestId: string; response: IHttpResponse }>
   | IMessage<'collectionsLoaded', { collections: ICollection[] }>
   | IMessage<'variablesLoaded', { variables: IVariableSet }>
+  | IMessage<'proxiesLoaded', { proxies: IProxyProfileSet }>
   | IMessage<'historyLoaded', { entries: IHistoryEntry[] }>
   | IMessage<'settingsLoaded', { settings: IHttpSettings; proxy: IProxyConfig; defaultHeaders: IKeyValuePair[] }>
   | IMessage<'collectionImported', { collection: ICollection }>

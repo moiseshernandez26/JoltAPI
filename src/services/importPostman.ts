@@ -114,7 +114,6 @@ function convertPostmanItems(items: PostmanItem[], now: number): ICollectionRequ
           queryParams: [],
           body,
           auth: { type: 'none' } as { type: AuthType },
-          proxy: { enabled: false, host: '', port: 0 },
           settings: {
             timeout: 30000,
             sslVerify: true,

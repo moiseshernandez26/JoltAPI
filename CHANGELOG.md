@@ -2,6 +2,41 @@
 
 All notable changes to JoltAPI are documented in this file.
 
+## [0.6.0] — 2026-08-02
+
+### Added
+- **Per-request Settings tab** — Timeout, SSL verification, follow-redirects, and max-redirects are now editable per request instead of being fixed at the workspace defaults.
+- **Redirect handling** — `followRedirects` / `maxRedirects` are finally honored: JoltAPI follows the chain itself, stops at your limit, downgrades POST to GET on 301/302/303 like browsers do, and **drops `Authorization`/`Cookie` when a redirect crosses to a different origin**.
+- **`--proxy` in Copy as cURL** — Copied commands now include `--proxy` (and `--proxy-user`), so pasting one into a terminal reproduces the proxied request instead of silently going direct.
+- **Auto-closing HTML/XML tags** — In the raw body editor's `xml`/`html` modes, typing `>` after `<user` inserts `</user>` and parks the caret between them. Skips closing tags, self-closing tags, comments, declarations, and HTML void elements (`<br>`, `<img>`, …).
+- **`joltapi.proxy.*` settings now do something** — They had no effect at all since v0.1.0. On first load per workspace they are imported into a saved proxy profile named `Workspace default`, which you can then rename, edit, or delete.
+- **Virtual workspace support** — JoltAPI works in virtual workspaces (github.dev and other file-system providers): all persistence moved from Node's `fs` to `vscode.workspace.fs`.
+- **Integration tests** — A real `@vscode/test-electron` suite (`npm run test:integration`) covering activation, command registration, opening the panel, and storage round-trips.
+
+### Changed
+- The extension host is now **bundled with esbuild** into a single `out/extension.js` (27.7 KB minified), which loads faster than the previous file-by-file output. `undici` stays external and keeps shipping in `node_modules` — bundling it would break its `.wasm` parser lookup.
+- Import/export and file dialogs pass URI strings instead of local paths, so they work against virtual file systems.
+
+## [0.5.0] — 2026-08-02
+
+### Added
+- **Reusable Proxy Profiles** — Proxies are now defined once and shared. A new **Proxies** tab in the sidebar manages named proxy configurations (name, host, port, optional credentials) stored in `.joltapi/proxies.json`; each request picks one from a dropdown in its Proxy tab. Editing a proxy updates every request that uses it.
+- **`loadProxies` / `saveProxies` / `proxiesLoaded` messages** — Proxy profiles are broadcast to both webviews after any change, same as collections and variables.
+- **Show/hide toggle on secret fields** — Bearer tokens, Basic Auth passwords, API key values, and proxy passwords now have an eye button to reveal what you typed. They stay masked by default and re-mask when you leave the field.
+
+### Changed
+- **A request now stores a proxy *reference* (`proxyId`), not an inline copy.** The per-request proxy form from 0.4.0 is replaced by a selector. Requests saved with the old inline proxy keep working — their Proxy tab shows the previous settings read-only, and choosing a saved proxy migrates them.
+
+### Fixed
+- Sending a request whose saved proxy was deleted now fails with a `PROXY_NOT_FOUND` error instead of silently sending the request direct.
+- A proxy that can't be applied (bad host, missing `undici`) now aborts the request with `PROXY_AGENT_FAILED` instead of quietly sending it unproxied with only a console warning.
+- Proxy host field accepts a pasted `http://host:8080/` and splits it into host + port; paths, spaces, and embedded credentials are rejected with an inline error instead of producing a broken proxy URI.
+- Deleting two proxies in quick succession no longer resurrects the first one.
+- A request's Proxy tab no longer claims the proxy was deleted while the saved list is still loading.
+- A request still using the pre-0.5.0 inline proxy now shows it as the selected dropdown entry instead of "No proxy — send directly", which contradicted what actually happened.
+- A proxy password typed without a username is no longer silently discarded — the form asks for the username.
+- Exported collections now carry the proxy profiles their requests reference (without credentials) and importing restores them, so shared collections no longer arrive with dangling proxy references.
+
 ## [0.4.0] — 2026-08-01
 
 ### Added

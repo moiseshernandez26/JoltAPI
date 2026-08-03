@@ -4,6 +4,7 @@ import {
   useResponseStore,
   useCollectionStore,
   useVariableStore,
+  useProxyStore,
   useTabStore,
   createDefaultRequest,
 } from '../store';
@@ -22,6 +23,7 @@ export const MainView: React.FC = () => {
   const setResponse = useResponseStore((s) => s.setResponse);
   const setCollections = useCollectionStore((s) => s.setCollections);
   const setVariableSet = useVariableStore((s) => s.setVariableSet);
+  const setProxyProfiles = useProxyStore((s) => s.setProfiles);
   const variables = useVariableStore((s) => s.variables);
   const currentResponse = useResponseStore((s) => s.currentResponse);
   const { sendRequest } = useRequestState();
@@ -29,10 +31,11 @@ export const MainView: React.FC = () => {
   const [lastError, setLastError] = useState<string | null>(null);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
 
-  // Load collections and variables on mount
+  // Load collections, variables, and proxy profiles on mount
   useEffect(() => {
     postMessage({ command: 'loadCollections', payload: undefined });
     postMessage({ command: 'loadVariables', payload: undefined });
+    postMessage({ command: 'loadProxies', payload: undefined });
   }, []);
 
   const syncTabs = (collections: ICollection[]): void => {
@@ -102,6 +105,9 @@ export const MainView: React.FC = () => {
         break;
       case 'variablesLoaded':
         setVariableSet(message.payload.variables);
+        break;
+      case 'proxiesLoaded':
+        setProxyProfiles(message.payload.proxies.profiles);
         break;
       case 'openRequest': {
         const req = message.payload.request;

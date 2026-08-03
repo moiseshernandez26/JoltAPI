@@ -1,10 +1,11 @@
 import React, { useEffect } from 'react';
-import { useSidebarStore } from './sidebar/sidebarStore';
+import { useSidebarStore, type SidebarTab } from './sidebar/sidebarStore';
 import { useMessageListener } from './hooks/useMessageListener';
 import { useSendMessage } from './hooks/useSendMessage';
 import { CollectionsPanel } from './sidebar/CollectionsPanel';
 import { HistoryPanel } from './sidebar/HistoryPanel';
 import { VariablesPanel } from './sidebar/VariablesPanel';
+import { ProxiesPanel } from './sidebar/ProxiesPanel';
 import type { HostToWebviewMessage, IHttpRequest } from './types';
 
 function createEmptyRequest(): IHttpRequest {
@@ -17,7 +18,6 @@ function createEmptyRequest(): IHttpRequest {
     queryParams: [],
     body: { type: 'none' },
     auth: { type: 'none' },
-    proxy: { enabled: false, host: '', port: 0 },
     settings: { timeout: 30000, sslVerify: true, followRedirects: true, maxRedirects: 5 },
   };
 }
@@ -28,6 +28,7 @@ export const SidebarApp: React.FC = () => {
   const setCollections = useSidebarStore((s) => s.setCollections);
   const setHistory = useSidebarStore((s) => s.setHistory);
   const setVariables = useSidebarStore((s) => s.setVariables);
+  const setProxies = useSidebarStore((s) => s.setProxies);
   const setIsLoading = useSidebarStore((s) => s.setIsLoading);
   const sendMessage = useSendMessage();
 
@@ -43,6 +44,9 @@ export const SidebarApp: React.FC = () => {
       case 'variablesLoaded':
         setVariables(message.payload.variables.variables);
         break;
+      case 'proxiesLoaded':
+        setProxies(message.payload.proxies.profiles);
+        break;
       case 'error':
         console.error('[JoltAPI Sidebar] Error:', message.payload.message);
         break;
@@ -53,6 +57,7 @@ export const SidebarApp: React.FC = () => {
     sendMessage({ command: 'loadCollections', payload: undefined });
     sendMessage({ command: 'getHistory', payload: undefined });
     sendMessage({ command: 'loadVariables', payload: undefined });
+    sendMessage({ command: 'loadProxies', payload: undefined });
   }, [sendMessage]);
 
   const handleNewRequest = (): void => {
@@ -63,6 +68,7 @@ export const SidebarApp: React.FC = () => {
     { id: 'collections', label: 'Collections' },
     { id: 'history', label: 'History' },
     { id: 'variables', label: 'Variables' },
+    { id: 'proxies', label: 'Proxies' },
   ];
 
   return (
@@ -90,12 +96,11 @@ export const SidebarApp: React.FC = () => {
         {activeTab === 'collections' && <CollectionsPanel />}
         {activeTab === 'history' && <HistoryPanel />}
         {activeTab === 'variables' && <VariablesPanel />}
+        {activeTab === 'proxies' && <ProxiesPanel />}
       </div>
     </div>
   );
 };
-
-type SidebarTab = 'collections' | 'history' | 'variables';
 
 const styles: Record<string, React.CSSProperties> = {
   container: {
@@ -127,8 +132,10 @@ const styles: Record<string, React.CSSProperties> = {
   },
   tab: {
     flex: 1,
-    padding: '6px 4px',
-    fontSize: '11px',
+    // Four tabs have to fit a narrow sidebar — tight padding, no wrapping.
+    padding: '6px 2px',
+    fontSize: '10px',
+    whiteSpace: 'nowrap',
     fontWeight: 500,
     border: 'none',
     background: 'none',

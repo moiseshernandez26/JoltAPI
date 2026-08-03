@@ -21,7 +21,7 @@ export function createDefaultRequest(): IHttpRequest {
     queryParams: [],
     body: { type: 'none' },
     auth: { type: 'none' },
-    proxy: { enabled: false, host: '', port: 0 },
+    proxyId: undefined,
     settings: {
       timeout: 30000,
       sslVerify: true,
@@ -38,7 +38,7 @@ function createEmptyPair(): IKeyValuePair {
 interface RequestState {
   currentRequest: IHttpRequest;
   isDirty: boolean;
-  activeTab: 'headers' | 'body' | 'params' | 'auth' | 'proxy';
+  activeTab: 'headers' | 'body' | 'params' | 'auth' | 'proxy' | 'settings';
   isSending: boolean;
 
   setMethod: (method: IHttpRequest['method']) => void;
@@ -47,7 +47,8 @@ interface RequestState {
   setQueryParams: (params: IKeyValuePair[]) => void;
   setBody: (body: IHttpRequest['body']) => void;
   setAuth: (auth: IHttpRequest['auth']) => void;
-  setProxy: (proxy: IHttpRequest['proxy']) => void;
+  setProxyId: (proxyId: string | undefined) => void;
+  setSettings: (settings: IHttpRequest['settings']) => void;
   setActiveTab: (tab: RequestState['activeTab']) => void;
   setIsSending: (sending: boolean) => void;
   loadRequest: (request: IHttpRequest) => void;
@@ -100,9 +101,16 @@ export const useRequestStore = create<RequestState>((set) => ({
       isDirty: true,
     })),
 
-  setProxy: (proxy) =>
+  // Selecting a proxy also drops any legacy inline `proxy` object so the two can't disagree.
+  setProxyId: (proxyId) =>
     set((state) => ({
-      currentRequest: { ...state.currentRequest, proxy },
+      currentRequest: { ...state.currentRequest, proxyId, proxy: undefined },
+      isDirty: true,
+    })),
+
+  setSettings: (settings) =>
+    set((state) => ({
+      currentRequest: { ...state.currentRequest, settings },
       isDirty: true,
     })),
 
